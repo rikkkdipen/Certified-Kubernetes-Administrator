@@ -1,0 +1,7 @@
+A static pod is a type of pod that is not managed by the Kubernetes control plane (like the API server and scheduler). Instead, it's directly created and managed by the kubelet (the agent that runs on each node in your Kubernetes cluster).
+
+-----------------------------------------
+
+Regular Pods: These are the ones you usually work with in Kubernetes. They are defined in YAML or JSON files and are created by the Kubernetes control plane. This means Kubernetes schedules them, manages them, and monitors their health automatically.
+
+Static Pods: These are different. They're not controlled by the Kubernetes control plane. Instead, they are defined by a file (like a YAML file) placed on a specific node's file system. The kubelet on that node is the one who directly creates and manages these pods.
