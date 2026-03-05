@@ -1,0 +1,28 @@
+How to remember which node as which component
+
+Kubelet = Everywhere (Kubelet is the actual builds which builds everything)
+Both the nodes has the kubelet which is necessary to run the commands. so kubelet is there on every node
+
+Only the control plane has the brain parts:
+
+    1. The kubeapi server
+    2. etcd
+    3. scheduler
+    4. kube controller manager
+    5. + cloud controller manager only in the cloud setups
+
+brains = control plane Only
+
+Workers are like factories
+
+    1. Kubelet
+    2. containerd
+    3. kube-proxy
+
+neumonics: KASKET
+
+Control plane
+    1. Kube-ApiServer
+    2. scheduler
+    3. Kube-controller-manager
+    4. ETCD
