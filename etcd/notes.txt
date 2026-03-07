@@ -1,0 +1,12 @@
+etcd is a distributed reliable key:value database
+
+It is a part of the master node in the architecture
+
+etcd stores the requests that come through the kubeAPI server
+
+How does etcd work in the background:
+1. kubectAPI calls the etcd at the time of kubectl apply command after which etcd performs operation based on the commands.
+2. etcd stores the value in the databse using a the PUT call (PUT)
+3. etcd retrieve the value in the db using the the GET call (GET)
+
+
