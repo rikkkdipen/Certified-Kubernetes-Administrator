@@ -1,0 +1,92 @@
+CKA: ETCD IN KUBERNETES — PRACTICE QUESTIONS (Q&A)
+==================================================
+
+1) Q: What is etcd in Kubernetes?
+   A: etcd is the cluster datastore (distributed key-value store) that stores the
+      entire Kubernetes cluster state (Pods, Nodes, Deployments, Secrets, etc.).
+
+2) Q: Which Kubernetes component talks directly to etcd?
+   A: Only the kube-apiserver talks directly to etcd. kubectl and controllers
+      communicate with etcd through the API server.
+
+3) Q: Why is etcd called the “source of truth”?
+   A: Because the current and desired state of the cluster is persisted there.
+      If it’s not in etcd, Kubernetes doesn’t “know” it exists.
+
+4) Q: In a kubeadm cluster, how is etcd usually deployed?
+   A: As a pod (static pod) in the kube-system namespace, usually on the control-plane node.
+
+5) Q: How do you confirm etcd is running in a kubeadm/kind cluster?
+   A: kubectl -n kube-system get pods | grep etcd
+
+6) Q: What is the default client port for etcd?
+   A: 2379 (client requests). (Peer communication is commonly 2380.)
+
+7) Q: What is the most important etcd skill for CKA?
+   A: Taking an etcd snapshot (backup) and restoring it correctly.
+
+8) Q: What environment variable is commonly required for CKA etcdctl tasks?
+   A: ETCDCTL_API=3 (to force etcdctl to use v3 API).
+
+9) Q: What does "etcdctl snapshot save" do?
+   A: It creates a point-in-time backup (snapshot) of the etcd database.
+
+10) Q: What does "etcdctl snapshot status" do?
+    A: It verifies snapshot metadata (revision, size, etc.) to confirm it’s valid.
+
+11) Q: In secure kubeadm clusters, why do you need --cacert/--cert/--key flags?
+    A: Because etcd uses TLS authentication. The client (etcdctl) must present
+       valid certificates to connect.
+
+12) Q: Where are etcd TLS certs commonly located in kubeadm clusters?
+    A: /etc/kubernetes/pki/etcd/
+
+13) Q: What is a common etcd endpoint used in kubeadm static-pod setups?
+    A: https://127.0.0.1:2379 (from the control-plane node).
+
+14) Q: What prefix is commonly used for Kubernetes objects in etcd?
+    A: /registry (example: /registry/pods/<namespace>/<pod-name>).
+
+15) Q: Should you use etcdctl put/del directly against Kubernetes etcd in practice?
+    A: No (not for learning). It can corrupt cluster state. Use read-only get
+       operations and snapshots unless a lab explicitly instructs otherwise.
+
+16) Q: What happens to running workloads if etcd goes down?
+    A: Existing pods may continue running on nodes, but the control plane loses
+       reliable state storage: scaling, scheduling new pods, and many kubectl operations
+       become unreliable or fail.
+
+17) Q: Explain quorum in etcd (simple).
+    A: etcd needs a majority of members online to accept writes.
+       - 3 members -> need 2
+       - 5 members -> need 3
+
+18) Q: What does "restore" mean in etcd context?
+    A: Rebuilding etcd data from a snapshot so the cluster state returns to a previous
+       known-good point.
+
+19) Q: High-level restore steps (CKA style)?
+    A: Stop API server (or prevent changes), restore snapshot to a data directory,
+       configure etcd to use restored data, restart etcd, then bring API server back.
+
+20) Q: Quick troubleshooting: snapshot command fails with “certificate signed by unknown authority”.
+    A: You likely used the wrong CA cert path. Confirm the correct --cacert (usually
+       /etc/kubernetes/pki/etcd/ca.crt in kubeadm).
+
+21) Q: Quick troubleshooting: snapshot command fails “connection refused”.
+    A: Endpoint/port is wrong OR etcd is not reachable from where you run etcdctl.
+       Verify etcd pod/node, and use the correct --endpoints (often https://127.0.0.1:2379
+       from control plane node).
+
+22) Q: What is the safest way to “view” what Kubernetes stores in etcd?
+    A: Exec into etcd pod and run:
+       ETCDCTL_API=3 etcdctl ... get /registry --prefix --keys-only
+       (Use TLS flags as required.)
+
+END
+===
+Tip: For CKA, practice these until you can do them under time pressure:
+- locate etcd pod
+- snapshot save with correct endpoint + TLS flags
+- snapshot status verification
+- basic key listing with /registry prefix (read-only)
