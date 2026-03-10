@@ -1,0 +1,72 @@
+KUBELET (KodeKloud CKA Notes)
+=============================
+
+1) What is kubelet?
+-------------------
+- kubelet is the node agent that runs on EVERY Kubernetes node.
+- It is responsible for making sure containers described in PodSpecs are running
+  on that node.
+
+Simple line:
+- kubelet is the “builder” on each node.
+
+2) Who does kubelet talk to?
+----------------------------
+A) kube-apiserver
+- kubelet watches the API server for Pods assigned to its node.
+- kubelet reports Node status + Pod status back to the API server.
+
+B) Container Runtime (via CRI)
+- kubelet uses CRI (Container Runtime Interface) to talk to the runtime
+  (containerd / CRI-O) to start/stop containers.
+
+Memory chain:
+- kubelet → CRI → containerd → runc → container process
+
+3) What kubelet does (core responsibilities)
+--------------------------------------------
+- Registers the node with the cluster (node object appears in the API server)
+- Watches for Pod assignments (Pod.spec.nodeName = this node)
+- Pulls images (through runtime)
+- Creates Pod sandbox (network namespace) and starts containers
+- Runs liveness/readiness/startup probes (health checks)
+- Mounts volumes (PVCs, configmaps, secrets, projected volumes, etc.)
+- Restarts containers if they fail (based on restartPolicy)
+- Reports status back (Pod status, Node conditions)
+
+4) What kubelet does NOT do
+---------------------------
+- kubelet does NOT schedule pods to nodes (scheduler does).
+- kubelet does NOT create pod objects in etcd (controllers create via API server).
+
+5) Important CKA debugging areas for kubelet
+--------------------------------------------
+When pods are stuck or failing after being scheduled:
+- ImagePullBackOff / ErrImagePull (registry/network/auth/tag)
+- CrashLoopBackOff (app crash; check logs + restart count)
+- ContainerCreating (often CNI/network or volume mount issues)
+- FailedMount (configmap/secret/pvc problems)
+- Node NotReady (kubelet down or node/network issues)
+
+6) Where kubelet runs and where to see it
+-----------------------------------------
+- kubelet runs as a system service on the node (systemd in many setups).
+- On kind, nodes are Docker containers; kubelet runs inside those node containers.
+
+Useful commands (node):
+- systemctl status kubelet        (if systemd available)
+- journalctl -u kubelet -n 200    (kubelet logs)
+- ps aux | grep kubelet
+
+7) Runtime debugging tools (CKA-style)
+--------------------------------------
+Modern Kubernetes uses containerd/CRI-O, so node troubleshooting uses crictl:
+- crictl ps
+- crictl pods
+- crictl logs <container-id>
+- crictl exec -it <container-id> sh
+
+8) One-liner to remember
+------------------------
+- Scheduler chooses the node.
+- kubelet makes the pod run on that node and reports status back.
