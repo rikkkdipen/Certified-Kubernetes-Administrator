@@ -1,0 +1,100 @@
+CKA: KUBE-PROXY — QUESTIONS & ANSWERS (Beginner → Expert)
+========================================================
+
+BEGINNER (FOUNDATION)
+---------------------
+
+1) Q: What is kube-proxy?
+   A: kube-proxy is a node-level networking component that enables Kubernetes Services by
+      routing Service traffic to Pod endpoints.
+
+2) Q: Why do we need kube-proxy if Pods already have IPs?
+   A: Pod IPs change. Services provide a stable virtual IP/name, and kube-proxy maps
+      Service IP/port to the current Pod IPs/ports.
+
+3) Q: Where does kube-proxy run?
+   A: Usually as a DaemonSet in kube-system, meaning one pod per node.
+
+4) Q: Does kube-proxy assign Pod IPs?
+   A: No. The CNI plugin assigns Pod IPs and sets up pod networking.
+
+INTERMEDIATE (CKA PRACTICAL)
+----------------------------
+
+5) Q: What resources does kube-proxy watch to build routing rules?
+   A: Services and Endpoints/EndpointSlices (via kube-apiserver).
+
+6) Q: What are kube-proxy modes?
+   A:
+   - iptables mode: creates iptables NAT rules for service routing.
+   - IPVS mode: uses Linux IPVS for service load balancing.
+
+7) Q: A Service exists but "kubectl get endpoints" shows none. What does it mean?
+   A: Usually:
+   - Service selector does not match pod labels, OR
+   - Pods are not Ready (readiness failing), so they aren’t added as endpoints.
+
+8) Q: Pods are Running and reachable via Pod IP, but Service ClusterIP is not working. What do you check?
+   A:
+   - Endpoints/EndpointSlices are populated correctly
+   - kube-proxy is running on nodes
+   - kube-proxy logs and service rules (iptables/ipvs)
+
+9) Q: How do you quickly verify kube-proxy is running?
+   A:
+     kubectl -n kube-system get pods -o wide | grep kube-proxy
+   or
+     kubectl -n kube-system get ds kube-proxy
+
+10) Q: What is the relation between readiness and Service endpoints?
+    A: Only Ready pods are typically added as service endpoints. If readiness is failing,
+       Service may have no endpoints or fewer endpoints.
+
+EXPERT (TROUBLESHOOTING FLOW)
+-----------------------------
+
+11) Q: Explain the flow: Client -> Service -> Pod (where kube-proxy fits)
+    A:
+    - Client sends traffic to Service ClusterIP:Port (or NodeIP:NodePort).
+    - kube-proxy uses iptables/IPVS rules on the node to NAT/forward traffic
+      to one of the backend Pod IPs (endpoints).
+    - Return traffic flows back normally through networking.
+
+12) Q: Difference between CNI networking and kube-proxy responsibility?
+    A:
+    - CNI: gives pods IPs and enables pod-to-pod networking.
+    - kube-proxy: implements Service virtual IP and load-balancing to pod endpoints.
+
+13) Q: NodePort not working on one node but works on another. What might be wrong?
+    A:
+    - kube-proxy on the failing node might be unhealthy/not running.
+    - node firewall rules or iptables/ipvs rules may differ.
+    - Check kube-proxy pod on that node and its logs.
+
+14) Q: What kube-proxy-related checks are common in CKA?
+    A:
+    - Validate service selectors/labels:
+      kubectl describe svc <svc>
+      kubectl get pods --show-labels
+    - Validate endpoints:
+      kubectl get endpoints <svc>
+      kubectl get endpointslices
+    - Check kube-proxy:
+      kubectl -n kube-system get pods -o wide | grep kube-proxy
+      kubectl -n kube-system logs <kube-proxy-pod>
+
+15) Q: In one line, how do you decide if it’s kube-proxy vs app issue?
+    A:
+    - If Pod IP works but Service IP/NodePort fails: likely kube-proxy/service/endpoints.
+    - If Pod IP itself fails: likely app/container/CNI/networking.
+
+CKA QUICK CHECKLIST (SERVICE NOT WORKING)
+-----------------------------------------
+- kubectl get svc
+- kubectl describe svc <svc> (selectors/ports)
+- kubectl get endpoints <svc> / endpointslices
+- kubectl get pods --show-labels (label mismatch?)
+- Is pod Ready?
+- Is kube-proxy running on nodes? check ds/pods + logs
+
+END
