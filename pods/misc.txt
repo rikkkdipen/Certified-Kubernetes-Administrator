@@ -1,0 +1,83 @@
+NGINX-SVC (Service) — kubectl describe explanation
+==================================================
+
+Name: nginx-svc
+- The Service object name.
+
+Namespace: default
+- The Service exists in the default namespace.
+- Services and Pods must be in the same namespace to match via selector.
+
+Labels: run=nginx
+- Labels attached to the Service object itself (metadata).
+- Not used for routing traffic; mostly for organization/filtering.
+
+Annotations: <none>
+- Extra metadata used by controllers/tools (Ingress controllers, service meshes, cloud LB integrations).
+- None are set here.
+
+Selector: run=nginx
+- The most important routing line.
+- This tells Kubernetes: "Select Pods that have label run=nginx as backends for this Service."
+- If this selector does NOT match any Pods, the Service will have NO endpoints.
+
+Type: ClusterIP
+- The Service is reachable only inside the cluster network.
+- You cannot directly access the ClusterIP from your laptop unless you:
+  - kubectl port-forward, or
+  - use NodePort/Ingress/LoadBalancer for external access.
+
+IP Family Policy: SingleStack
+IP Families: IPv4
+- The Service is using only one IP family (IPv4).
+- Not dual-stack (IPv4+IPv6).
+
+IP: 10.96.105.3
+IPs: 10.96.105.3
+- The Service’s stable virtual IP inside the cluster.
+- This is not a Pod IP.
+- Traffic sent to 10.96.105.3:80 will be routed to backend Pod endpoints by kube-proxy.
+
+Port: <unset> 80/TCP
+- "Port" is the port exposed by the Service to clients.
+- <unset> means no name is given to this port (names are optional).
+- 80/TCP means Service listens on TCP port 80.
+
+TargetPort: 80/TCP
+- The port on the backend Pods that traffic will be forwarded to.
+- Here it is 80, meaning Service port 80 forwards to Pod port 80.
+- In other apps, Service port and targetPort can differ (e.g., 80 -> 8080).
+
+Endpoints: 10.244.0.6:80
+- This is the actual backend destination list for this Service.
+- It means the Service currently routes to a Pod IP 10.244.0.6 on port 80.
+- If you scale the app to multiple Pods, you’ll see multiple endpoints here.
+- If endpoints are empty, common causes are:
+  - selector mismatch (labels don’t match)
+  - Pod not Ready (readiness failing)
+  - Pods don’t exist
+
+Session Affinity: None
+- No sticky sessions.
+- Requests can be sent to any backend endpoint.
+- If set to ClientIP, it can pin a client to a specific backend.
+
+Internal Traffic Policy: Cluster
+- Cluster = route traffic to endpoints across the whole cluster (default).
+- Local = only route to endpoints on the same node (used for some node-local patterns).
+
+Events: <none>
+- No notable events recorded for this Service.
+- Most service issues are diagnosed via selector/labels/endpoints rather than events.
+
+Quick verification commands (for debugging)
+------------------------------------------
+1) Check pods and labels:
+   kubectl get pods --show-labels
+
+2) Check endpoints:
+   kubectl get endpoints nginx-svc
+
+3) Access from your laptop (ClusterIP is internal):
+   kubectl port-forward svc/nginx-svc 8080:80
+   then open: http://localhost:8080

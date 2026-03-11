@@ -1,0 +1,104 @@
+CKA: PODS — QUESTIONS & ANSWERS (Beginner → Expert)
+==================================================
+
+BEGINNER (FOUNDATION)
+---------------------
+
+1) Q: What is a Pod?
+   A: The smallest deployable unit in Kubernetes that runs one or more containers together.
+
+2) Q: Why not run containers directly in Kubernetes?
+   A: Kubernetes schedules Pods (a group of containers) to represent an application instance,
+      and to support patterns like sidecars.
+
+3) Q: Do containers in a Pod share the same IP?
+   A: Yes. A Pod gets one IP and all containers share it.
+
+4) Q: How do containers in the same Pod communicate?
+   A: Via localhost and shared volumes, because they share the network namespace.
+
+5) Q: What command lists pods?
+   A: kubectl get pods
+
+INTERMEDIATE (CKA PRACTICAL)
+----------------------------
+
+6) Q: What is the best command to debug why a Pod is failing?
+   A: kubectl describe pod <pod>
+      (Events section is usually the fastest root-cause indicator.)
+
+7) Q: What does Pending mean?
+   A: Pod is not fully running yet—either not scheduled to a node OR waiting on image pull,
+      volume mount, or sandbox/network setup.
+
+8) Q: Difference between ErrImagePull and ImagePullBackOff?
+   A:
+   - ErrImagePull: initial image pull failure
+   - ImagePullBackOff: repeated failures; kubelet is backing off retries
+
+9) Q: What does CrashLoopBackOff indicate?
+   A: The container starts, crashes, and kubelet keeps restarting it. Check logs and config.
+
+10) Q: What does it mean when Ready is False but Status is Running?
+    A: Container is running but not passing readinessProbe (or readiness not achieved yet),
+       so it won’t receive service traffic.
+
+11) Q: What do Pod Conditions tell you?
+    A:
+    - PodScheduled: scheduler assigned node
+    - Initialized: init containers finished
+    - ContainersReady: all containers ready
+    - Ready: overall pod readiness
+
+12) Q: What are the first 3 commands you run when a pod is failing?
+    A:
+    - kubectl get pod <pod> -o wide
+    - kubectl describe pod <pod>
+    - kubectl logs <pod> (and --previous if restarting)
+
+13) Q: How do you enter a running pod?
+    A: kubectl exec -it <pod> -- sh
+
+14) Q: How do you access a pod from your laptop quickly?
+    A: kubectl port-forward pod/<pod> 8080:<port>
+
+EXPERT (FLOW + TROUBLESHOOTING)
+-------------------------------
+
+15) Q: Explain: How does a Pod go from creation to running on a node?
+    A:
+    - Pod object is created via API server (stored in etcd).
+    - Scheduler assigns a node (Pod.spec.nodeName set).
+    - Kubelet on that node pulls image, sets up pod sandbox/CNI, mounts volumes,
+      starts containers via runtime, and reports status back.
+
+16) Q: How do Services send traffic to Pods?
+    A:
+    - Service selector matches pod labels.
+    - Endpoints/EndpointSlices list the Pod IPs that are Ready.
+    - kube-proxy routes Service IP traffic to those endpoints.
+
+17) Q: A Service exists but Endpoints are empty. What are top reasons?
+    A:
+    - Service selector doesn’t match pod labels
+    - Pods are not Ready (readiness failing)
+    - Pods do not exist
+
+18) Q: What is QoS BestEffort and why does it matter?
+    A: BestEffort pods have no requests/limits and are the first to be evicted under
+       node resource pressure.
+
+19) Q: Pod is scheduled, but container never starts. Where do you look?
+    A:
+    - Events: image pull, mount, CNI errors
+    - kubelet/runtime issues on that node
+    - For CRI runtimes, use crictl on the node
+
+CKA QUICK CHECKLIST
+-------------------
+- If Pending: check FailedScheduling Events + constraints
+- If ImagePullBackOff: check image name/tag, registry auth, network/DNS, rate limits
+- If CrashLoopBackOff: check logs, env, configmaps, secrets, command/args
+- If Service not working: check labels/selectors/endpoints + readiness
+
+END
