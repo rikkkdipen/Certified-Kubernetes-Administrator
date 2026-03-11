@@ -1,0 +1,79 @@
+KUBE-PROXY (KodeKloud CKA Notes)
+================================
+
+1) What is kube-proxy?
+----------------------
+- kube-proxy is a network component that runs on (almost) every node.
+- It enables Kubernetes Services to work by routing traffic from a Service
+  (ClusterIP/NodePort) to the correct backend Pods.
+
+Simple line:
+- kube-proxy is the “traffic router” for Services.
+
+2) What problem does kube-proxy solve?
+--------------------------------------
+Pods are ephemeral:
+- Pod IPs can change when pods restart/reschedule.
+Services provide a stable way to reach Pods:
+- Service name + ClusterIP remains stable.
+kube-proxy makes:
+- Service IP/port -> Pod IP(s)/port(s)
+work reliably.
+
+3) How kube-proxy works (high level)
+------------------------------------
+- kube-proxy watches the kube-apiserver for:
+  - Services
+  - Endpoints / EndpointSlices
+- When Services/Endpoints change, kube-proxy updates node networking rules.
+
+Depending on mode:
+A) iptables mode (very common)
+- Creates iptables rules to NAT/redirect Service traffic to pod endpoints.
+
+B) IPVS mode
+- Uses Linux IPVS for load balancing (more efficient at large scale).
+
+(Exact mode depends on cluster configuration.)
+
+4) What kube-proxy is NOT responsible for
+-----------------------------------------
+- It does NOT assign Pod IPs (CNI plugin does).
+- It does NOT provide container networking (CNI does pod-to-pod routing).
+- It is mostly focused on Service-level traffic routing/load balancing.
+
+5) Service types kube-proxy supports (CKA relevant)
+---------------------------------------------------
+- ClusterIP: internal virtual IP for service
+- NodePort: opens a port on each node to route to the service
+- LoadBalancer: usually built on top of NodePort + cloud provider integration
+
+kube-proxy is critical for:
+- ClusterIP and NodePort routing (and part of LoadBalancer path).
+
+6) Where does kube-proxy run?
+-----------------------------
+- Usually as a DaemonSet in kube-system:
+  kubectl -n kube-system get ds | grep kube-proxy
+  kubectl -n kube-system get pods -o wide | grep kube-proxy
+
+7) CKA debugging signals involving kube-proxy
+---------------------------------------------
+If pods are Running and reachable by Pod IP, but Service is failing:
+- suspect kube-proxy rules or endpoints mismatch.
+
+Common symptoms:
+- Service ClusterIP not reachable
+- NodePort not working on nodes
+- Endpoints are empty -> label selector mismatch OR pods not Ready
+
+Debug checklist:
+- kubectl get svc
+- kubectl get endpoints / endpointslices
+- kubectl describe svc <svc>
+- kubectl -n kube-system logs <kube-proxy-pod>
+
+8) One-liner to remember
+------------------------
+- CNI gives pods IP + pod-to-pod connectivity.
+- kube-proxy makes Services (ClusterIP/NodePort) route traffic to the right pods.
