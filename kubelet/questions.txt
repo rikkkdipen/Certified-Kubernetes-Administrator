@@ -1,0 +1,97 @@
+CKA: KUBELET — QUESTIONS & ANSWERS (Beginner → Expert)
+=====================================================
+
+BEGINNER (FOUNDATION)
+---------------------
+
+1) Q: What is kubelet?
+   A: kubelet is the node agent that runs on every node and ensures containers in PodSpecs
+      are running on that node.
+
+2) Q: Where does kubelet run?
+   A: On every Kubernetes node (worker and control-plane nodes). In kind, it runs inside
+      the Docker container that represents the node.
+
+3) Q: Does kubelet schedule pods to nodes?
+   A: No. Scheduling is done by kube-scheduler.
+
+4) Q: Does kubelet talk directly to etcd?
+   A: No. kubelet communicates with the kube-apiserver; the API server talks to etcd.
+
+5) Q: What does kubelet do after a pod is scheduled to its node?
+   A: It pulls the image, sets up the pod sandbox (network), mounts volumes, starts containers
+      via the runtime, and reports status back to the API server.
+
+INTERMEDIATE (CKA PRACTICAL)
+----------------------------
+
+6) Q: Who does kubelet communicate with?
+   A:
+   - kube-apiserver (get assigned pod specs + report node/pod status)
+   - container runtime via CRI (start/stop containers)
+
+7) Q: What is CRI and why does kubelet care?
+   A: CRI is the Container Runtime Interface. kubelet uses it to talk to runtimes like
+      containerd or CRI-O.
+
+8) Q: What is the common execution chain from kubelet to the actual container process?
+   A: kubelet → CRI → containerd → runc → container process.
+
+9) Q: A pod is scheduled (PodScheduled=True) but stuck in ContainerCreating. What do you check?
+   A: Node-level issues: CNI/network plugin, image pull, volume mounts, runtime health.
+      Check Events in `kubectl describe pod` and kubelet logs.
+
+10) Q: What does ImagePullBackOff usually mean in kubelet terms?
+    A: kubelet (through the runtime) cannot pull the image due to network/DNS issues,
+       wrong image name/tag, registry auth, or rate limiting.
+
+11) Q: What does CrashLoopBackOff indicate, and what’s kubelet’s role?
+    A: The container starts and then crashes repeatedly. kubelet restarts it based on
+       restartPolicy. Debug with:
+       kubectl logs <pod>
+       kubectl logs <pod> --previous
+       and check restart count in describe.
+
+12) Q: What does Node NotReady often indicate?
+    A: kubelet may be down/unhealthy, node networking issues, or resource pressure.
+       kubelet reports node conditions to the API server.
+
+13) Q: Which tool is commonly used in CKA to inspect containers on the node (non-Docker runtime)?
+    A: crictl (because the runtime is usually containerd/CRI-O, not Docker Engine).
+
+EXPERT (FULL FLOW + TROUBLESHOOTING)
+------------------------------------
+
+14) Q: Explain: How does a Pod go from "created" to "running on a node" (controllers + scheduler + kubelet)?
+    A:
+    - You apply a Deployment → API server stores desired state in etcd.
+    - Controller-manager creates ReplicaSet → ReplicaSet controller creates Pod objects.
+    - Scheduler assigns a node by setting Pod.spec.nodeName.
+    - kubelet on that node watches the API server, sees the pod assigned to it,
+      pulls image, sets up networking/volumes, starts containers via CRI/runtime,
+      and reports status (Running/Ready) back to the API server.
+
+15) Q: If pods are not starting but are scheduled, how do you isolate whether it's kubelet or scheduler?
+    A:
+    - If PodScheduled=False / FailedScheduling events → scheduler/constraints.
+    - If PodScheduled=True but ContainerCreating/ImagePullBackOff/CrashLoopBackOff →
+      kubelet/runtime/CNI/volume/app issues.
+
+16) Q: Where do you look for kubelet logs?
+    A: On the node:
+       - journalctl -u kubelet (common systemd setups)
+       - system logs depending on OS
+       In kind: docker exec into node container and inspect kubelet process/logs.
+
+17) Q: What is kubelet’s role with probes?
+    A: kubelet executes liveness/readiness/startup probes and updates pod readiness status.
+       Readiness affects service traffic; liveness can trigger restarts.
+
+CKA QUICK CHECKLIST (POD SCHEDULED BUT BROKEN)
+----------------------------------------------
+- kubectl describe pod <pod>  (Events + State + Restart Count)
+- kubectl logs <pod> / --previous
+- If node access: kubelet logs + crictl ps/logs
+- Check CNI + volumes if stuck in ContainerCreating
+
+END
