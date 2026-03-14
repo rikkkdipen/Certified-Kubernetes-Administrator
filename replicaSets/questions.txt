@@ -1,0 +1,100 @@
+CKA: REPLICASETS — QUESTIONS & ANSWERS (Deeper Understanding)
+============================================================
+
+FOUNDATION
+----------
+
+1) Q: What is a ReplicaSet?
+   A: A controller that ensures a specific number of Pod replicas are running at all times.
+
+2) Q: Why do we need ReplicaSets?
+   A: For self-healing and scaling: if a Pod dies, RS recreates it; if too many exist, RS removes extras.
+
+3) Q: Does a ReplicaSet schedule Pods onto nodes?
+   A: No. The scheduler decides node placement. RS only creates Pod objects.
+
+4) Q: Does a ReplicaSet talk directly to etcd?
+   A: No. It uses kube-apiserver. The API server persists state in etcd.
+
+LABELS + SELECTORS (MOST IMPORTANT)
+-----------------------------------
+
+5) Q: How does a ReplicaSet know which pods to manage?
+   A: Using its selector (spec.selector). It manages pods whose labels match the selector.
+
+6) Q: What is the difference between spec.selector and spec.template.labels?
+   A:
+   - spec.selector: defines which pods the RS will count/manage.
+   - spec.template.labels: labels applied to new pods created by RS.
+   They should match.
+
+7) Q: What happens if RS selector and template labels do NOT match?
+   A: The RS may create pods but not manage/count them correctly, or it may manage other pods
+      that match the selector unexpectedly. This can break desired replica behavior.
+
+8) Q: Can a ReplicaSet manage pods you created manually?
+   A: Yes, if those pods match its selector, RS will adopt/manage them.
+
+DEPLOYMENT RELATIONSHIP
+-----------------------
+
+9) Q: What is the relationship between Deployment and ReplicaSet?
+   A: Deployment manages ReplicaSets; ReplicaSets manage Pods.
+
+10) Q: Why do Deployments use ReplicaSets?
+    A: To support rolling updates and rollbacks by creating new RS revisions and scaling
+       old/new RS up/down.
+
+11) Q: After updating a Deployment image, why do you see multiple ReplicaSets?
+    A: Each rollout revision creates a new ReplicaSet. Old RS stays for rollback history.
+
+PRACTICAL / CKA COMMANDS
+------------------------
+
+12) Q: Which command is best to debug why a ReplicaSet is not creating pods?
+    A: kubectl describe rs <rs-name> (check Events and selector/labels)
+
+13) Q: How do you confirm which pods belong to a ReplicaSet?
+    A:
+    - kubectl describe rs <rs-name> (shows selector + pods)
+    - kubectl get pods -l <label-selector>
+
+14) Q: How do you scale a ReplicaSet?
+    A: kubectl scale rs <rs-name> --replicas=<N>
+       (In real apps, scaling the Deployment is preferred.)
+
+15) Q: How do you find the owner (who created the RS)?
+    A:
+    - kubectl get rs <rs> -o yaml | look for ownerReferences
+    - If ownerReferences.kind=Deployment, the RS is controlled by a Deployment.
+
+TROUBLESHOOTING PATTERNS
+------------------------
+
+16) Q: RS desired replicas is 3 but current is 0. What are top reasons?
+    A:
+    - ImagePullBackOff / ErrImagePull
+    - FailedScheduling (resource/taints/affinity)
+    - Namespace quotas / limit ranges
+    - Missing permissions (rare in standard clusters)
+    Check: Events in describe output.
+
+17) Q: RS has pods but Service has no endpoints. How can this happen?
+    A: Pods may be not Ready (readinessProbe failing) OR Service selector doesn't match
+       pod labels. RS being healthy does not guarantee Service routing.
+
+18) Q: Pod keeps coming back after you delete it. Why?
+    A: The ReplicaSet controller recreates it to maintain desired replicas.
+
+19) Q: In one line, how do you differentiate Deployment vs ReplicaSet in a real cluster?
+    A: Deployment manages rollouts/rollbacks and creates ReplicaSets; ReplicaSet only maintains
+       a stable pod replica count.
+
+EXAM SUMMARY
+------------
+
+20) Q: What are the 3 key things to remember for CKA about ReplicaSets?
+    A:
+    - RS maintains desired pod count (self-healing).
+    - RS uses labels/selectors to manage pods.
+    - Deployments create/manage RS for rolling updates and rollbacks.

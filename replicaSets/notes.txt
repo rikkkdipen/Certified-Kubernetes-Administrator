@@ -1,0 +1,92 @@
+REPLICASETS (KodeKloud CKA Notes)
+=================================
+
+1) What is a ReplicaSet?
+------------------------
+- A ReplicaSet (RS) ensures a specified number of Pod replicas are running at all times.
+- If a Pod dies, RS creates a new one.
+- If extra Pods exist, RS deletes extras.
+- This is Kubernetes self-healing at the Pod replica level.
+
+2) Why not create Pods directly?
+--------------------------------
+- A standalone Pod has no controller to recreate it if it fails.
+- ReplicaSet continuously reconciles desired replicas vs current replicas.
+
+3) How does a ReplicaSet “choose” which Pods to manage?
+--------------------------------------------------------
+ReplicaSet uses LABEL SELECTORS.
+
+Key parts:
+A) spec.selector
+- Defines which Pods this RS manages (matchLabels / matchExpressions).
+
+B) spec.template.metadata.labels
+- Labels that will be placed on new Pods the RS creates.
+
+Important rule (CKA):
+- The Pod template labels MUST match the RS selector,
+  otherwise the RS will not manage its own pods correctly.
+
+4) ReplicaSet vs ReplicationController (RC)
+-------------------------------------------
+- ReplicationController is older.
+- ReplicaSet is newer and supports set-based selectors (matchExpressions).
+- In modern Kubernetes, Deployments use ReplicaSets underneath.
+
+5) Relationship: Deployment -> ReplicaSet -> Pods (MOST EXAM RELEVANT)
+---------------------------------------------------------------------
+- Deployment manages ReplicaSets.
+- ReplicaSet manages Pods.
+
+Why Deployments use ReplicaSets:
+- Rolling updates/rollbacks are implemented by creating new ReplicaSets for new versions.
+- Old RS can be scaled down, new RS scaled up.
+
+6) What happens when you update a Deployment image?
+---------------------------------------------------
+- Deployment creates a new ReplicaSet for the new Pod template.
+- New RS scales up; old RS scales down (rolling update strategy).
+- Old ReplicaSets remain in history (for rollback).
+
+7) Common ReplicaSet fields (what to read in YAML/describe)
+-----------------------------------------------------------
+- spec.replicas: desired pod count
+- spec.selector: which pods RS manages
+- spec.template: pod template RS creates (labels, containers, image, etc.)
+- status.replicas / readyReplicas / availableReplicas: current state
+
+8) CKA commands (must-know)
+---------------------------
+- List:
+  kubectl get rs
+  kubectl get pods
+
+- Describe (best debugging):
+  kubectl describe rs <rs-name>
+
+- Scale (usually scale Deployment, but RS also works):
+  kubectl scale rs <rs-name> --replicas=5
+
+- Show ownership chain:
+  kubectl get pod <pod> -o jsonpath='{.metadata.ownerReferences[0].kind}{"\n"}'
+
+9) Common issues and how to debug (CKA mindset)
+-----------------------------------------------
+A) RS shows desired replicas but pods are not created
+- Check: kubectl describe rs <rs-name>
+- Look at Events: image pull, quota, scheduling, permission, etc.
+
+B) RS managing “unexpected pods”
+- RS will manage ANY Pod in the namespace that matches its selector.
+- Broad selectors can accidentally capture other pods.
+
+C) “Label mismatch” problem
+- If RS selector does not match template labels:
+  - RS might create pods but not count them correctly,
+  - or may not manage the pods it creates as expected.
+
+10) One-liner memory
+--------------------
+- ReplicaSet = “pod count keeper”.
+- Deployment = “ReplicaSet manager (rollouts/rollbacks)”.
