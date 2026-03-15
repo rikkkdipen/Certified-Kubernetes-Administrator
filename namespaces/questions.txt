@@ -1,0 +1,106 @@
+CKA: NAMESPACES — QUESTIONS & ANSWERS (Deep Understanding)
+=========================================================
+
+FOUNDATION
+----------
+
+1) Q: What is a namespace in Kubernetes?
+   A: A logical partition inside a cluster used to organize and isolate resources.
+
+2) Q: Why are namespaces useful?
+   A: They help separate environments, teams, and projects inside the same cluster.
+
+3) Q: If I don’t specify a namespace while creating a resource, where does it go?
+   A: The resource is created in the default namespace.
+
+4) Q: Can the same Pod or Deployment name exist in two different namespaces?
+   A: Yes. Names must be unique only within a namespace, not across namespaces.
+
+5) Q: Are all Kubernetes resources namespaced?
+   A: No. Some are cluster-scoped, such as Nodes, PersistentVolumes, and StorageClasses.
+
+BUILT-IN NAMESPACES
+-------------------
+
+6) Q: What is the purpose of the default namespace?
+   A: It is the namespace Kubernetes uses when no namespace is explicitly specified.
+
+7) Q: What is kube-system used for?
+   A: It contains Kubernetes system components such as control plane and cluster add-on resources.
+
+8) Q: What is kube-public?
+   A: A namespace that is conventionally readable by all users/clients.
+
+9) Q: What is kube-node-lease?
+   A: It stores lease objects used for efficient node heartbeat tracking.
+
+SERVICES + DNS + ISOLATION
+--------------------------
+
+10) Q: If a Pod in namespace dev tries to access a Service named mysql, where does Kubernetes look first?
+    A: It looks for mysql in the same namespace (dev).
+
+11) Q: How do you access a Service in another namespace?
+    A: Use:
+      service-name.namespace
+    Example:
+      mysql.prod
+
+12) Q: What is the full DNS name format of a Service?
+    A: service-name.namespace.svc.cluster.local
+
+13) Q: Why might a Service name work in one namespace but fail in another?
+    A: Because short service names resolve inside the current namespace by default.
+
+PRACTICAL / CKA COMMANDS
+------------------------
+
+14) Q: How do you list all namespaces?
+    A: kubectl get ns
+
+15) Q: How do you create a namespace named dev?
+    A: kubectl create ns dev
+
+16) Q: How do you view pods in the dev namespace?
+    A: kubectl get pods -n dev
+
+17) Q: How do you create a Deployment directly in a namespace?
+    A: kubectl create deploy nginx --image=nginx -n dev
+
+18) Q: How do you permanently switch your current kubectl context to a namespace?
+    A: kubectl config set-context --current --namespace=dev
+
+DEEPER UNDERSTANDING
+--------------------
+
+19) Q: Why would a company use namespaces instead of separate clusters for dev/test/prod?
+    A: Namespaces are lighter, faster, and simpler when you want logical isolation inside one cluster.
+
+20) Q: When should you avoid creating too many namespaces?
+    A: If the cluster is very small or you don’t need isolation/features, too many namespaces can add unnecessary complexity.
+
+21) Q: What Kubernetes features are often applied at the namespace level?
+    A: ResourceQuota, LimitRange, RBAC rules, and environment separation.
+
+22) Q: What happens if you try to create a namespaced resource in a namespace that doesn’t exist?
+    A: The request fails because the namespace must exist first.
+
+23) Q: What is the difference between labels and namespaces?
+    A:
+    - Namespace separates resources at a logical cluster boundary.
+    - Labels are key/value tags used to organize and select resources inside or across namespaces.
+
+24) Q: Give one interview-ready definition of namespace.
+    A: A namespace is a logical isolation boundary inside a Kubernetes cluster used to organize namespaced resources, separate environments or teams, and apply policies or quotas more effectively.
+
+EXAM SUMMARY
+------------
+
+25) Q: What are the most important namespace ideas for CKA?
+    A:
+    - default is used if no namespace is specified
+    - kube-system contains system components
+    - service names are namespace-aware
+    - namespaces help organize and isolate environments
+    - quotas and limits are commonly applied per namespace
+

@@ -1,0 +1,125 @@
+NAMESPACES (KodeKloud CKA Notes)
+================================
+
+1) What is a namespace?
+-----------------------
+- A namespace is a logical partition inside a Kubernetes cluster.
+- It helps organize and isolate resources within the same cluster.
+- Names of resources must be unique within a namespace, but can repeat across namespaces.
+
+Simple line:
+- One cluster, multiple logical environments.
+
+2) Why do we need namespaces?
+-----------------------------
+Namespaces are used to separate:
+- dev
+- test
+- prod
+- teams
+- projects
+
+Without namespaces, all Pods, Services, Deployments, ConfigMaps, and Secrets
+would be mixed together inside the same cluster view.
+
+3) Built-in namespaces to remember
+----------------------------------
+- default
+  If you don’t specify a namespace, resources are created here.
+
+- kube-system
+  Kubernetes system components run here.
+
+- kube-public
+  Publicly readable namespace by convention.
+
+- kube-node-lease
+  Used for node lease objects / heartbeats.
+
+4) What resources are usually namespaced?
+-----------------------------------------
+Examples:
+- Pods
+- Services
+- Deployments
+- ConfigMaps
+- Secrets
+
+Important:
+- Not everything is namespaced.
+- Some resources are cluster-scoped, such as:
+  - Nodes
+  - PersistentVolumes
+  - StorageClasses
+
+5) Default namespace behavior
+-----------------------------
+If you create a resource without specifying a namespace, Kubernetes places it in:
+- default
+
+Example:
+  kubectl run nginx --image=nginx
+This creates the Pod in the default namespace unless -n is used.
+
+6) Why namespaces matter for Services and DNS
+---------------------------------------------
+Services are namespace-aware.
+
+If a Pod in namespace "test" tries to access:
+  mysql
+Kubernetes first looks for a Service named mysql in the SAME namespace (test).
+
+To access a Service in another namespace, use:
+- mysql.prod
+or full DNS:
+- mysql.prod.svc.cluster.local
+
+Memory trick:
+- service-name                -> same namespace
+- service-name.namespace      -> another namespace
+- service-name.namespace.svc.cluster.local -> full cluster DNS name
+
+7) Resource isolation / quotas
+------------------------------
+Namespaces are also useful for:
+- ResourceQuota
+- LimitRange
+- separating environments
+- applying policies more cleanly
+
+Example:
+- dev namespace can have smaller CPU/memory limits
+- prod namespace can have stricter rules
+
+8) Common namespace commands (CKA)
+----------------------------------
+- List namespaces:
+  kubectl get ns
+
+- Create namespace:
+  kubectl create ns dev
+
+- Create resource in a namespace:
+  kubectl create deploy nginx --image=nginx -n dev
+
+- View pods in a namespace:
+  kubectl get pods -n dev
+
+- Set current context namespace:
+  kubectl config set-context --current --namespace=dev
+
+9) YAML example
+---------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+
+Apply:
+  kubectl apply -f namespace.yml
+
+10) One-liner to remember
+-------------------------
+- Namespace = logical isolation boundary inside one Kubernetes cluster.
+- It helps organize environments, teams, and policies without creating separate clusters.
+
