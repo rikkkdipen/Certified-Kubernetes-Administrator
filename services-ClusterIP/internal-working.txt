@@ -1,0 +1,9 @@
+You create a Service, and Kubernetes gives it a virtual internal IP
+
+The Service uses its selector to find matching Pods
+
+Kubernetes keeps a backend list of those Pods as endpoints
+
+When traffic hits the ClusterIP, kube-proxy on the node uses iptables/IPVS rules to forward that traffic to one of the backend Pod IPs
+
+So the ClusterIP itself is not a real Pod — it’s a stable virtual address that routes traffic to changing Pods behind it.

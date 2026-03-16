@@ -1,0 +1,185 @@
+SERVICE - CLUSTERIP (KodeKloud CKA Notes)
+=========================================
+
+1) What is ClusterIP?
+---------------------
+- ClusterIP is the default Service type in Kubernetes.
+- It gives a Service a stable internal virtual IP inside the cluster.
+- It is used for communication between applications running inside the cluster.
+
+Simple line:
+- Pods are temporary
+- ClusterIP is stable
+
+2) Why do we need ClusterIP?
+----------------------------
+Pods are ephemeral:
+- Pods can restart
+- Pod IPs can change
+- ReplicaSets and Deployments can recreate Pods
+
+If one app talks directly to Pod IPs, communication can break.
+A ClusterIP Service solves this by providing:
+- one stable Service IP
+- one stable Service DNS name
+- routing to the current backend Pods
+
+3) ClusterIP is internal only
+-----------------------------
+- ClusterIP Services are reachable only inside the cluster.
+- You cannot directly access ClusterIP from your laptop/internet.
+- For external access, use:
+  - NodePort
+  - LoadBalancer
+  - Ingress (higher-level access pattern)
+
+4) How does a ClusterIP Service find Pods?
+------------------------------------------
+A Service uses a selector.
+
+Example:
+  selector:
+    app: nginx
+
+This means:
+- Kubernetes finds Pods with label app=nginx
+- Those Pods become the backend endpoints for the Service
+
+Important:
+- If selector does not match any Pod labels, the Service has no endpoints.
+
+5) What does a ClusterIP Service actually do?
+---------------------------------------------
+Traffic flow:
+Client Pod -> Service IP / DNS -> Service backend Pods
+
+Kubernetes keeps track of backend Pods using Endpoints / EndpointSlices,
+and routes traffic from the Service to one of those Pods.
+
+6) Core YAML fields
+-------------------
+
+Example:
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: prod
+spec:
+  selector:
+    app: nginx
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+
+Field meaning:
+- metadata.name
+  Name of the Service
+
+- metadata.namespace
+  Namespace where the Service exists
+
+- spec.selector
+  Labels used to find backend Pods
+
+- spec.ports.port
+  Port exposed by the Service
+
+- spec.ports.targetPort
+  Port on the Pod/container where traffic is forwarded
+
+- spec.type
+  ClusterIP (internal-only service)
+
+7) port vs targetPort
+---------------------
+- port = Service port that clients connect to
+- targetPort = backend Pod/container port
+
+Example:
+  port: 80
+  targetPort: 8080
+
+Meaning:
+- Client connects to Service on port 80
+- Service forwards traffic to Pod port 8080
+
+8) ClusterIP address behavior
+-----------------------------
+- Kubernetes assigns a unique virtual IP to the Service.
+- That IP stays with the Service for its lifetime.
+- Every ClusterIP in the cluster must be unique.
+
+9) Service DNS
+--------------
+Services get DNS records.
+
+Inside the same namespace, usually this works:
+  nginx-service
+
+Across namespaces:
+  nginx-service.prod
+
+Full DNS:
+  nginx-service.prod.svc.cluster.local
+
+10) Namespace behavior
+----------------------
+- Services are namespace-scoped.
+- A Service in namespace prod only selects Pods in prod.
+- If Service is in prod and Pods are in default, the Service will not find them.
+
+11) Endpoints / EndpointSlices
+------------------------------
+- Endpoints are the real Pod IPs behind the Service.
+- If a Service selects 3 Pods, there will be 3 backend endpoints.
+- If endpoints are empty, traffic will fail.
+
+12) Most common ClusterIP use cases
+-----------------------------------
+- frontend talking to backend API
+- backend talking to database
+- internal microservice-to-microservice communication
+- stable service discovery inside the cluster
+
+13) Common debugging commands (CKA)
+-----------------------------------
+- List services:
+  kubectl get svc
+
+- Describe service:
+  kubectl describe svc <service-name>
+
+- Check endpoints:
+  kubectl get endpoints <service-name>
+  kubectl get endpointslices
+
+- Check labels on pods:
+  kubectl get pods --show-labels
+
+- Port-forward for local access:
+  kubectl port-forward svc/<service-name> 8080:80
+
+14) Common issues
+-----------------
+A) Service exists but does not work
+- selector mismatch
+- wrong targetPort
+- pods not Ready
+- wrong namespace
+
+B) Endpoints empty
+- no matching Pod labels
+- Pods not Ready
+- Pods in different namespace
+
+C) Trying to open ClusterIP from laptop
+- This is expected to fail
+- ClusterIP is internal only
+- Use port-forward, NodePort, or LoadBalancer instead
+
+15) One-liner to remember
+-------------------------
+- A ClusterIP Service gives stable internal access to a changing set of Pods using labels/selectors.
+

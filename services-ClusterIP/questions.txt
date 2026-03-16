@@ -1,0 +1,132 @@
+CKA: SERVICE - CLUSTERIP — QUESTIONS & ANSWERS
+==============================================
+
+FOUNDATION
+----------
+
+1) Q: What is a ClusterIP Service?
+   A: It is the default Kubernetes Service type that provides a stable internal virtual IP
+      and DNS name for a group of backend Pods.
+
+2) Q: Why do we need ClusterIP if Pods already have IPs?
+   A: Pod IPs can change when Pods restart or get recreated. ClusterIP gives stable access.
+
+3) Q: Is ClusterIP internal or external?
+   A: Internal only. It is reachable from inside the cluster, not directly from your laptop.
+
+4) Q: What is the default Service type in Kubernetes?
+   A: ClusterIP.
+
+SELECTORS + BACKENDS
+--------------------
+
+5) Q: How does a ClusterIP Service know which Pods to send traffic to?
+   A: It uses a selector that matches Pod labels.
+
+6) Q: What happens if the selector does not match any Pods?
+   A: The Service will have no endpoints, so traffic will not reach any backend.
+
+7) Q: What are endpoints in a ClusterIP Service?
+   A: The real backend Pod IPs and ports selected by the Service.
+
+8) Q: How do you verify whether a Service has working backends?
+   A: Run:
+      kubectl get endpoints <service-name>
+
+PORTS
+-----
+
+9) Q: What is the difference between port and targetPort?
+   A:
+   - port = port exposed by the Service
+   - targetPort = port on the Pod/container that receives traffic
+
+10) Q: Give an example of port mapping.
+    A:
+    - port: 80
+    - targetPort: 8080
+    Means clients connect to Service:80, and traffic is forwarded to Pod:8080.
+
+NAMESPACE + DNS
+---------------
+
+11) Q: Are ClusterIP Services namespaced?
+    A: Yes.
+
+12) Q: Can a Service in prod select Pods in default namespace?
+    A: No. A Service only selects Pods in the same namespace.
+
+13) Q: How do you access a ClusterIP Service in another namespace?
+    A: Use:
+      service-name.namespace
+    Example:
+      nginx-service.prod
+
+14) Q: What is the full DNS name of a Service?
+    A: service-name.namespace.svc.cluster.local
+
+15) Q: Inside the same namespace, do you need the full DNS name?
+    A: Usually no. The short Service name is enough.
+
+DEBUGGING
+---------
+
+16) Q: Which command is best to inspect a Service quickly?
+    A: kubectl describe svc <service-name>
+
+17) Q: Which command tells you whether the Service found backend Pods?
+    A: kubectl get endpoints <service-name>
+
+18) Q: A ClusterIP Service exists but the app is not reachable. What do you check first?
+    A:
+    - selector
+    - endpoints
+    - Pod labels
+    - Pod readiness
+    - targetPort
+    - namespace
+
+19) Q: Why can a Service exist but still fail?
+    A: Because the Service object can be created successfully even when it has no endpoints
+       or when the backend Pods are not Ready.
+
+20) Q: Why might endpoints be empty even if Pods exist?
+    A:
+    - labels do not match selector
+    - Pods are not Ready
+    - Pods are in another namespace
+
+PRACTICAL / CKA
+---------------
+
+21) Q: How do you create a ClusterIP Service from an existing deployment quickly?
+    A: kubectl expose deployment <name> --port=80
+
+22) Q: How do you access a ClusterIP Service from your laptop for testing?
+    A: Use port-forward:
+      kubectl port-forward svc/<service-name> 8080:80
+
+23) Q: Why is port-forward useful with ClusterIP?
+    A: Because ClusterIP is internal only, and port-forward creates a temporary tunnel
+       from your laptop to the Service.
+
+24) Q: What is the most common real-world use case for ClusterIP?
+    A: Internal communication between services inside the cluster, such as frontend -> API
+       or API -> database.
+
+DEEP UNDERSTANDING
+------------------
+
+25) Q: Does ClusterIP run the application?
+    A: No. Pods run the application; ClusterIP only provides stable access to them.
+
+26) Q: What stays stable in ClusterIP: Pod IP or Service IP?
+    A: Service IP stays stable; Pod IPs may change.
+
+27) Q: In one interview sentence, explain ClusterIP.
+    A: ClusterIP is the default Kubernetes Service type that provides a stable internal IP
+       and DNS name for a dynamic set of Pods selected by labels.
+
+28) Q: What is the one biggest idea to remember for CKA?
+    A: ClusterIP is internal-only, stable, selector-based access to changing backend Pods.
+
