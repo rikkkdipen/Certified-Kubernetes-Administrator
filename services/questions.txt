@@ -1,0 +1,130 @@
+CKA: SERVICES — QUESTIONS & ANSWERS (Deep Understanding)
+=======================================================
+
+FOUNDATION
+----------
+
+1) Q: What is a Service in Kubernetes?
+   A: A stable networking abstraction that provides access to a dynamic set of Pods.
+
+2) Q: Why do we need a Service if Pods already have IPs?
+   A: Pod IPs can change when Pods restart or get recreated. A Service gives a stable IP and DNS name.
+
+3) Q: What is the default Service type?
+   A: ClusterIP.
+
+4) Q: What does a ClusterIP Service do?
+   A: It exposes the application only inside the cluster.
+
+SELECTORS + ENDPOINTS
+---------------------
+
+5) Q: How does a Service know which Pods to send traffic to?
+   A: By using a selector that matches Pod labels.
+
+6) Q: What happens if the Service selector does not match any Pods?
+   A: The Service will have no endpoints and traffic will not reach any backend Pods.
+
+7) Q: What are endpoints in a Service?
+   A: The real backend Pod IPs and ports selected by the Service.
+
+8) Q: How do you check whether a Service has backends?
+   A: kubectl get endpoints <service-name>
+
+9) Q: Why can a Service exist but still not work?
+   A: Because it may have no endpoints, wrong selector, non-ready Pods, or wrong targetPort.
+
+PORTS
+-----
+
+10) Q: What is the difference between port and targetPort?
+    A:
+    - port = the port exposed by the Service
+    - targetPort = the port on the backend Pod/container
+
+11) Q: Give an example of port mapping.
+    A:
+    - Service port 80
+    - targetPort 8080
+    Means traffic to Service:80 goes to Pod:8080
+
+SERVICE TYPES
+-------------
+
+12) Q: What is NodePort?
+    A: A Service type that exposes the app on a port on every node.
+
+13) Q: How is a NodePort Service accessed?
+    A: Using NodeIP:NodePort
+
+14) Q: What is LoadBalancer Service used for?
+    A: To expose an application externally through a cloud provider load balancer.
+
+15) Q: Which Service type is most commonly used for internal microservice communication?
+    A: ClusterIP.
+
+NAMESPACES + DNS
+----------------
+
+16) Q: Are Services namespaced?
+    A: Yes.
+
+17) Q: Can a Service in namespace prod select Pods in namespace dev?
+    A: No. A Service only selects Pods in the same namespace.
+
+18) Q: How do you access a Service in another namespace?
+    A: Use:
+      service-name.namespace
+    Example:
+      nginx-service.prod
+
+19) Q: What is the full DNS format of a Service?
+    A: service-name.namespace.svc.cluster.local
+
+PRACTICAL / CKA
+---------------
+
+20) Q: Which command is best to inspect selector, ports, endpoints, and type of a Service?
+    A: kubectl describe svc <service-name>
+
+21) Q: How do you create a Service quickly from an existing Pod?
+    A: kubectl expose pod <pod-name> --port=80 --name=<service-name>
+
+22) Q: How do you test a ClusterIP Service from your laptop without changing Service type?
+    A: Use port-forward:
+      kubectl port-forward svc/<service-name> 8080:80
+
+23) Q: If a Service is correct but the app still fails, what should you check next?
+    A:
+    - Pod labels
+    - Pod readiness
+    - endpoints
+    - container port / targetPort
+    - kube-proxy or networking if needed
+
+DEEPER UNDERSTANDING
+--------------------
+
+24) Q: What is the difference between a Pod and a Service?
+    A:
+    - Pod runs the actual container/application
+    - Service provides stable access to one or more Pods
+
+25) Q: Does a Service run containers?
+    A: No. It is only a networking abstraction.
+
+26) Q: Why is readiness important for Services?
+    A: Services should send traffic only to healthy/ready Pods. If Pods are not Ready, endpoints may be missing.
+
+27) Q: In one line, how would you explain Services in an interview?
+    A: A Kubernetes Service provides stable network access to a dynamic group of Pods using labels/selectors and supports internal or external exposure through types like ClusterIP, NodePort, and LoadBalancer.
+
+CKA QUICK CHECKLIST
+-------------------
+- Service not working?
+  1) kubectl describe svc <name>
+  2) kubectl get endpoints <name>
+  3) kubectl get pods --show-labels
+  4) check targetPort/containerPort
+  5) check namespace
+

@@ -1,0 +1,164 @@
+SERVICES (KodeKloud CKA Notes)
+==============================
+
+1) What is a Service?
+---------------------
+- A Service is a stable networking abstraction in Kubernetes.
+- It provides a fixed way to access a group of Pods.
+- Pods can restart, get deleted, or receive new IPs, but the Service stays stable.
+
+Simple line:
+- Pods are temporary.
+- Service is stable.
+
+2) Why do we need a Service?
+----------------------------
+Pods are ephemeral:
+- Pod IPs can change
+- Pods may be recreated by ReplicaSets or Deployments
+- Clients should not depend on Pod IPs directly
+
+A Service solves this by providing:
+- a stable virtual IP
+- a stable DNS name
+- traffic routing to matching Pods
+
+3) How does a Service find the right Pods?
+------------------------------------------
+A Service uses a selector.
+
+Example:
+  selector:
+    app: nginx
+
+This means:
+- Kubernetes looks for Pods with label app=nginx
+- Those Pods become backend endpoints of the Service
+
+Important:
+- If selector does not match any Pod labels, the Service will have no endpoints.
+
+4) Important Service types (CKA focus)
+--------------------------------------
+
+A) ClusterIP
+- Default Service type
+- Accessible only inside the cluster
+- Used for internal Pod-to-Pod communication
+
+B) NodePort
+- Exposes the Service on a port on every node
+- Accessible as:
+  NodeIP:NodePort
+- Common for labs and quick external access
+
+C) LoadBalancer
+- Used mostly in cloud environments
+- Requests an external load balancer from the cloud provider
+- Used to expose applications externally in a cleaner way
+
+5) Core Service fields
+----------------------
+
+- metadata.name
+  Name of the Service
+
+- metadata.namespace
+  Namespace where the Service exists
+
+- spec.selector
+  Labels used to find backend Pods
+
+- spec.ports.port
+  Port exposed by the Service
+
+- spec.ports.targetPort
+  Port on the Pod/container where traffic is forwarded
+
+- spec.type
+  ClusterIP / NodePort / LoadBalancer
+
+6) Service port vs targetPort
+-----------------------------
+Example:
+  port: 80
+  targetPort: 8080
+
+This means:
+- clients connect to Service on port 80
+- Service forwards traffic to Pod port 8080
+
+If both are 80:
+- Service port 80 -> Pod port 80
+
+7) Service and namespaces
+-------------------------
+Services are namespace-scoped.
+
+Example:
+- A Service in namespace prod is different from a Service in namespace dev
+- A Pod in namespace dev trying to access mysql will look for mysql in dev first
+
+To access a Service in another namespace:
+- mysql.prod
+or full DNS:
+- mysql.prod.svc.cluster.local
+
+Important:
+- Service selector matches only Pods in the SAME namespace as the Service.
+
+8) What are Endpoints / EndpointSlices?
+---------------------------------------
+- Endpoints are the real backend Pod IPs behind a Service.
+- If a Service selects 3 matching Pods, it will have 3 endpoints.
+- Kubernetes now commonly uses EndpointSlices internally for scalability.
+
+Debugging rule:
+- If Service exists but endpoints are empty, traffic will fail.
+
+9) kube-proxy and Services
+--------------------------
+- kube-proxy runs on nodes and programs networking rules.
+- It helps route traffic from Service IP -> Pod IPs.
+- Services work together with kube-proxy and cluster networking.
+
+10) Common commands (CKA)
+-------------------------
+- List Services:
+  kubectl get svc
+
+- Describe Service:
+  kubectl describe svc <service-name>
+
+- Check endpoints:
+  kubectl get endpoints <service-name>
+  kubectl get endpointslices
+
+- Create Service from Pod:
+  kubectl expose pod nginx --port=80 --name=nginx-svc
+
+- Port-forward for local testing:
+  kubectl port-forward svc/nginx-svc 8080:80
+
+11) Common Service issues and how to debug
+------------------------------------------
+A) Service exists but app is not reachable
+- Check:
+  kubectl describe svc <name>
+  kubectl get endpoints <name>
+  kubectl get pods --show-labels
+
+B) Endpoints are empty
+- Selector and Pod labels do not match
+- Pods are not Ready
+- Pods are in another namespace
+
+C) ClusterIP works inside cluster but not from laptop
+- That is expected
+- ClusterIP is internal only
+- Use port-forward, NodePort, Ingress, or LoadBalancer for external access
+
+12) One-liner to remember
+-------------------------
+- A Service gives stable access to a changing set of Pods using labels/selectors.
+

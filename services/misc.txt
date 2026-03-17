@@ -1,0 +1,112 @@
+SERVICES — MISC NOTES / QUICK REFERENCE
+=======================================
+
+1) Quick memory map
+-------------------
+- Pod = runs the application
+- Service = stable access layer to Pods
+- Selector = how Service finds Pods
+- Endpoints = actual Pod IPs behind the Service
+- kube-proxy = routes Service traffic to Pods
+
+2) Fast difference
+------------------
+- ClusterIP:
+  Internal only, accessible inside cluster
+
+- NodePort:
+  Exposes app on every node IP + high port
+
+- LoadBalancer:
+  External access through cloud load balancer
+
+3) Service flow
+---------------
+Client -> Service IP / DNS -> kube-proxy rules -> Pod IP:targetPort
+
+4) Most common debug commands
+-----------------------------
+kubectl get svc
+kubectl describe svc <service-name>
+kubectl get endpoints <service-name>
+kubectl get endpointslices
+kubectl get pods --show-labels
+kubectl get pods -o wide
+
+5) If Service is not working, check this order
+----------------------------------------------
+1. Does the Service exist?
+2. Does selector match Pod labels?
+3. Do endpoints exist?
+4. Are Pods Ready?
+5. Is targetPort correct?
+6. Is the Pod/container actually listening on that port?
+7. Are you in the correct namespace?
+
+6) Common mistakes
+------------------
+A) Selector mismatch
+- Service selector says:
+  app: nginx
+- Pod label is:
+  app: web
+Result:
+- No endpoints
+
+B) Wrong targetPort
+- Service forwards to port 80
+- Container actually listens on 8080
+Result:
+- Traffic fails even though endpoints exist
+
+C) Wrong namespace
+- Service in prod
+- Pod in default
+Result:
+- Service cannot select Pod
+
+D) ClusterIP accessed from laptop directly
+- ClusterIP is internal only
+- Use port-forward / NodePort / LoadBalancer for external access
+
+7) Good validation commands
+---------------------------
+- Show labels:
+  kubectl get pods --show-labels
+
+- See backend pods directly:
+  kubectl get pods -l app=nginx
+
+- See endpoints:
+  kubectl get endpoints nginx-service
+
+- Port-forward Service:
+  kubectl port-forward svc/nginx-service 8080:80
+
+8) Service DNS examples
+-----------------------
+- Same namespace:
+  nginx-service
+
+- Another namespace:
+  nginx-service.prod
+
+- Full DNS:
+  nginx-service.prod.svc.cluster.local
+
+9) Interview-ready one-liners
+-----------------------------
+- A Service gives stable network access to dynamic Pods.
+- Services use selectors to discover backend Pods.
+- Endpoints are the real Pod IPs behind a Service.
+- ClusterIP is internal; NodePort and LoadBalancer expose apps externally.
+
+10) CKA exam tip
+----------------
+If a Service does not work:
+- Do not guess.
+- First run:
+  kubectl describe svc <name>
+  kubectl get endpoints <name>
+These 2 commands reveal most Service issues quickly.
+
