@@ -1,0 +1,204 @@
+MANUAL SCHEDULING (Kubernetes / CKA Notes)
+==========================================
+
+1) What is manual scheduling?
+-----------------------------
+Manual scheduling means creating a Pod without letting the default scheduler assign it automatically.
+
+Normally:
+- You create a Pod
+- Scheduler chooses the best node
+- Pod gets assigned to that node
+
+In manual scheduling:
+- You decide the node yourself
+
+2) Why learn manual scheduling?
+-------------------------------
+For CKA, manual scheduling helps you understand:
+- how the scheduler normally works
+- how Pods get assigned to nodes
+- what the nodeName field does
+
+It is also useful for troubleshooting and exam questions.
+
+3) Two important concepts
+-------------------------
+A) nodeName
+- The simplest way to manually schedule a Pod
+- You directly tell Kubernetes which node should run the Pod
+
+B) SchedulerName
+- Used when you want a Pod to be handled by a specific scheduler
+- Not the same as manual scheduling
+- For beginner understanding, nodeName is the key field
+
+4) The easiest way: using nodeName
+----------------------------------
+Example Pod YAML:
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-manual
+spec:
+  nodeName: worker-node-1
+  containers:
+    - name: nginx
+      image: nginx:1.25-alpine
+
+What this does:
+- Kubernetes skips the scheduler
+- kubelet on worker-node-1 sees the Pod assigned to it
+- kubelet pulls the image and starts the container
+
+5) Important rule
+-----------------
+If nodeName is set:
+- scheduler does NOT choose a node
+- Pod is already considered assigned
+
+So:
+- scheduler is bypassed
+- kubelet on that node handles the Pod
+
+6) How this works internally
+----------------------------
+Normal flow:
+Pod created -> scheduler finds a node -> Pod.spec.nodeName gets set -> kubelet runs it
+
+Manual scheduling flow:
+Pod created with nodeName already set -> kubelet on that node runs it
+
+7) How to find node names
+-------------------------
+Command:
+  kubectl get nodes
+
+Example output:
+  NAME                  STATUS   ROLES
+  controlplane          Ready    control-plane
+  worker-1              Ready    <none>
+
+Use the exact node name in nodeName:
+  nodeName: worker-1
+
+8) What happens if the node name is wrong?
+------------------------------------------
+If you use a nodeName that does not exist:
+- Pod will not run correctly
+- It may stay Pending
+- You must check with:
+  kubectl describe pod <pod-name>
+
+9) What happens if the node exists but cannot run the Pod?
+----------------------------------------------------------
+If nodeName is set manually:
+- Kubernetes still tries to run it on that node
+- But kubelet may fail due to:
+  - not enough resources
+  - image pull issues
+  - taints / restrictions in some cases
+  - runtime/CNI issues
+
+Manual scheduling does not guarantee success.
+It only forces the target node.
+
+10) Difference: nodeSelector vs nodeName
+----------------------------------------
+A) nodeName
+- exact node
+- direct assignment
+- bypasses scheduler
+
+B) nodeSelector
+- label-based preference/requirement
+- scheduler still chooses among matching nodes
+
+Example:
+  nodeSelector:
+    disktype: ssd
+
+This is NOT manual scheduling.
+This is scheduler-assisted placement.
+
+11) Difference: taints/tolerations vs manual scheduling
+-------------------------------------------------------
+- Taints/tolerations affect whether Pods can be placed on nodes
+- Manual scheduling with nodeName bypasses scheduler selection,
+  but kubelet/runtime still must run the Pod successfully
+
+For CKA memory:
+- nodeName = manual scheduling
+- nodeSelector / affinity = scheduler-based rules
+
+12) Practical example
+---------------------
+Step 1: See node names
+  kubectl get nodes
+
+Step 2: Create pod YAML with nodeName
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: nginx-manual
+  spec:
+    nodeName: desktop-control-plane
+    containers:
+      - name: nginx
+        image: nginx:1.25-alpine
+
+Step 3: Apply it
+  kubectl apply -f manual-pod.yml
+
+Step 4: Verify
+  kubectl get pod -o wide
+  kubectl describe pod nginx-manual
+
+13) How to verify manual scheduling worked
+------------------------------------------
+Check:
+  kubectl get pod nginx-manual -o wide
+
+You should see:
+- Pod running
+- NODE column showing the node you set
+
+Also:
+  kubectl describe pod nginx-manual
+
+Look for:
+- Node:
+- PodScheduled: True
+- Events showing successful creation/start
+
+14) Common CKA debugging points
+-------------------------------
+If a manually scheduled Pod is not running:
+
+Check:
+1. Is nodeName correct?
+2. Does the node exist?
+3. Is the node Ready?
+   kubectl get nodes
+4. What do Events say?
+   kubectl describe pod <pod-name>
+5. Is the image valid?
+6. Is kubelet healthy on that node?
+
+15) One-line memory
+-------------------
+Manual scheduling = setting nodeName directly in the Pod spec to force the Pod onto a specific node.
+
+16) Interview-style answer
+--------------------------
+Manual scheduling in Kubernetes means assigning a Pod directly to a node using the nodeName field, which bypasses the scheduler and lets the kubelet on that node start the Pod.
+
+17) Super short exam summary
+----------------------------
+- nodeName = manual scheduling
+- scheduler is bypassed
+- kubelet on the chosen node runs the Pod
+- verify with:
+  kubectl get pod -o wide
+  kubectl describe pod
