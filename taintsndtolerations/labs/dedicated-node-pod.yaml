@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dedicated-node-pod
+  labels:
+    app: nginx
+    lab: taints
+spec:
+  nodeSelector:
+    dedicated: blue
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "blue"
+      effect: "NoSchedule"
+  containers:
+    - name: nginx
+      image: nginx:1.25-alpine
+      ports:
+        - containerPort: 80

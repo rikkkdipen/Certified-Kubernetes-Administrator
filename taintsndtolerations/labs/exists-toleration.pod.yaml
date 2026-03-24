@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: exists-toleration-pod
+  labels:
+    app: nginx
+    lab: taints
+spec:
+  tolerations:
+    - key: "app"
+      operator: "Exists"
+      effect: "NoSchedule"
+  containers:
+    - name: nginx
+      image: nginx:1.25-alpine
+      ports:
+        - containerPort: 80

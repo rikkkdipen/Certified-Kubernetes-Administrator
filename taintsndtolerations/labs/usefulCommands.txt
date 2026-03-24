@@ -1,0 +1,5 @@
+Add Taint
+kubectl taint nodes <node-name> app=blue:NoSchedule
+
+Remove Taint
+kubectl taint nodes <node-name> app=blue:NoSchedule-
