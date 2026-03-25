@@ -1,0 +1,295 @@
+NODE AFFINITY (KodeKloud CKA Notes)
+===================================
+
+1) What is Node Affinity?
+-------------------------
+- Node Affinity is an advanced scheduling feature in Kubernetes.
+- It is used to control on which nodes a Pod should be scheduled.
+- It works using node labels, just like nodeSelector, but it is more powerful and flexible.
+
+Simple line:
+- nodeSelector = simple exact match
+- Node Affinity = advanced label-based scheduling
+
+2) Why do we need Node Affinity?
+--------------------------------
+By default, Kubernetes scheduler can place Pods on any suitable node.
+
+Sometimes we want more control, for example:
+- run Pods only on SSD nodes
+- prefer nodes in a specific zone
+- avoid certain node types
+- create stronger scheduling rules than nodeSelector
+
+Node Affinity helps us express:
+- hard requirements
+- soft preferences
+
+3) Node Affinity vs nodeSelector
+--------------------------------
+A) nodeSelector
+- simplest scheduling constraint
+- exact key=value match
+- hard requirement only
+
+Example:
+nodeSelector:
+  zone: blue
+
+B) Node Affinity
+- more flexible
+- supports multiple operators
+- supports hard rules and soft preferences
+
+4) Two main types of Node Affinity
+----------------------------------
+
+A) requiredDuringSchedulingIgnoredDuringExecution
+- This is a hard requirement.
+- Pod MUST be scheduled only on nodes that match the rule.
+- If no node matches, Pod stays Pending.
+
+B) preferredDuringSchedulingIgnoredDuringExecution
+- This is a soft preference.
+- Scheduler tries to place the Pod on matching nodes.
+- If no matching node exists, Pod can still run on another node.
+
+Important phrase:
+IgnoredDuringExecution means:
+- the rule is checked only during scheduling
+- if node labels change later, already running Pods are not evicted automatically
+
+5) Why is "IgnoredDuringExecution" important?
+---------------------------------------------
+This means:
+- Affinity rules are not continuously enforced after the Pod is running.
+- If a Pod was scheduled successfully and then the node label is removed later,
+  the Pod usually keeps running.
+- But if the Pod is deleted and recreated, the scheduler checks the affinity rule again.
+
+This is very similar to the practical learning from nodeSelector.
+
+6) Basic structure of Node Affinity
+-----------------------------------
+Node Affinity is written inside:
+
+spec:
+  affinity:
+    nodeAffinity:
+
+7) Hard requirement example
+---------------------------
+Example:
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-required
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: disktype
+                operator: In
+                values:
+                  - ssd
+  containers:
+    - name: nginx
+      image: nginx:1.25-alpine
+
+Meaning:
+- Pod can run only on nodes whose label disktype is ssd
+
+8) Soft preference example
+--------------------------
+Example:
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-preferred
+spec:
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: zone
+                operator: In
+                values:
+                  - blue
+  containers:
+    - name: nginx
+      image: nginx:1.25-alpine
+
+Meaning:
+- Scheduler prefers nodes with zone=blue
+- But if none exist, Pod can still run elsewhere
+
+9) Operators in Node Affinity
+-----------------------------
+Common operators:
+- In
+- NotIn
+- Exists
+- DoesNotExist
+- Gt
+- Lt
+
+Most important for CKA:
+- In
+- NotIn
+- Exists
+- DoesNotExist
+
+10) Meaning of operators
+------------------------
+- In
+  label value must be in the given list
+
+- NotIn
+  label value must NOT be in the given list
+
+- Exists
+  node must have this label key
+
+- DoesNotExist
+  node must NOT have this label key
+
+- Gt
+  label value must be greater than the given value
+
+- Lt
+  label value must be less than the given value
+
+11) How nodeSelectorTerms and matchExpressions work
+---------------------------------------------------
+This is very important.
+
+A) Inside one matchExpressions list
+- all expressions must match
+- this works like AND
+
+Example:
+matchExpressions:
+  - key: zone
+    operator: In
+    values:
+      - blue
+  - key: disktype
+    operator: In
+    values:
+      - ssd
+
+Meaning:
+- zone must be blue
+- AND disktype must be ssd
+
+B) Multiple nodeSelectorTerms
+- terms work like OR
+
+Meaning:
+- if any one nodeSelectorTerm matches, the node is eligible
+
+Memory trick:
+- matchExpressions inside one term = AND
+- multiple nodeSelectorTerms = OR
+
+12) Backend working of Node Affinity
+------------------------------------
+This is how it works internally:
+
+Step 1: Nodes have labels
+- Every node can have labels.
+- Some labels are built-in.
+- Some labels are added manually using kubectl label.
+
+Step 2: Pod is created
+- Pod with Node Affinity is created and stored in the cluster.
+- It is still unscheduled at this point.
+
+Step 3: Scheduler reads Pod rules
+- Scheduler sees affinity.nodeAffinity in the Pod spec.
+- It checks all available nodes.
+
+Step 4: Filtering stage
+- For requiredDuringSchedulingIgnoredDuringExecution:
+  scheduler removes all nodes that do not satisfy the required rules.
+- If no node matches, Pod stays Pending.
+
+Step 5: Scoring stage
+- For preferredDuringSchedulingIgnoredDuringExecution:
+  scheduler gives higher score to nodes that match the preference.
+- Matching nodes are preferred, but non-matching nodes can still be used.
+
+Step 6: Final scheduling decision
+- Scheduler chooses the best node among eligible nodes.
+- Then it binds the Pod to that node.
+
+Step 7: Kubelet runs the Pod
+- After scheduling, kubelet on the chosen node pulls the image and starts the Pod.
+
+Important:
+- Node Affinity only controls scheduling.
+- It does not guarantee the Pod will fully run.
+- Pod can still fail later because of:
+  - image pull errors
+  - resource issues
+  - taints/tolerations mismatch
+  - networking/runtime problems
+
+13) Most important practical understanding
+------------------------------------------
+Node Affinity affects:
+- where the Pod can be scheduled
+
+Node Affinity does NOT continuously enforce:
+- where the Pod must keep running after scheduling
+
+14) Node Affinity vs Taints and Tolerations
+-------------------------------------------
+Node Affinity:
+- Pod says "I want this type of node"
+
+Taints and Tolerations:
+- Node says "Keep unsuitable Pods away"
+
+Memory line:
+- affinity = attraction
+- taint = repulsion
+
+15) Common debugging commands
+-----------------------------
+Check nodes with labels:
+kubectl get nodes --show-labels
+
+Describe Pod:
+kubectl describe pod <pod-name>
+
+Check Pod placement:
+kubectl get pods -o wide
+
+Describe node:
+kubectl describe node <node-name>
+
+16) What to check while debugging
+---------------------------------
+- Does the node actually have the required label?
+- Is the label key/value correct?
+- Is the Pod using required or preferred affinity?
+- Did scheduling fail, or did scheduling succeed but runtime fail later?
+- Are there other constraints like taints, resources, or image pull issues?
+
+17) Common mistakes
+-------------------
+- confusing node affinity with nodeSelector
+- expecting preferred affinity to behave like a hard rule
+- misunderstanding AND vs OR
+- forgetting that IgnoredDuringExecution means no automatic eviction later
+- wrong label spelling
+- assuming scheduling success means Pod will definitely run
+
+18) Best one-line summary
+-------------------------
+Node Affinity is an advanced scheduling rule that uses node labels to express hard requirements or soft preferences for Pod placement.

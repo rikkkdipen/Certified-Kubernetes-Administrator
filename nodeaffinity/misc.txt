@@ -1,0 +1,79 @@
+NODE AFFINITY — MISC / QUICK REVISION
+=====================================
+
+Quick memory
+------------
+- nodeSelector = simple exact match
+- Node Affinity = advanced scheduling rules
+- required = hard rule
+- preferred = soft rule
+- IgnoredDuringExecution = checked during scheduling, not after
+
+Best mental model
+-----------------
+- required Node Affinity = filter nodes
+- preferred Node Affinity = score nodes
+
+AND / OR trick
+--------------
+- matchExpressions inside one nodeSelectorTerm = AND
+- multiple nodeSelectorTerms = OR
+
+Most important line
+-------------------
+Node Affinity decides where a Pod can be scheduled, but it does not continuously re-check the Pod after it is already running.
+
+Common operators
+----------------
+- In
+- NotIn
+- Exists
+- DoesNotExist
+- Gt
+- Lt
+
+Most useful for CKA
+-------------------
+- In
+- NotIn
+- Exists
+- DoesNotExist
+
+Common mistakes
+---------------
+- confusing nodeSelector and Node Affinity
+- thinking preferred behaves like required
+- misunderstanding AND vs OR
+- expecting running Pods to fail immediately after label removal
+- wrong label key/value spelling
+- ignoring Events section in describe pod
+
+Important distinction
+---------------------
+Scheduling success:
+- Pod placed on a node
+
+Runtime success:
+- image pulled
+- container started
+- Pod running
+
+A Pod can pass Node Affinity and still fail later.
+
+Best debug commands
+-------------------
+kubectl get nodes --show-labels
+kubectl get pods -o wide
+kubectl describe pod <pod-name>
+kubectl describe node <node-name>
+
+Best learning summary
+---------------------
+- required affinity blocks scheduling if no node matches
+- preferred affinity influences scheduler choice
+- removing a label later does not automatically evict a running Pod
+- delete and recreate the Pod to test scheduling again
+
+Interview line
+--------------
+Node Affinity is an advanced label-based scheduling rule used to express required or preferred node placement for a Pod.

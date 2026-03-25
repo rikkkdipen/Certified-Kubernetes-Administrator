@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: affinity-preferred-large
+spec:
+  containers:
+    - name: nginx
+      image: nginx:stable-alpine3.23-perl
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: size
+                operator: In
+                values:
+                  - Large

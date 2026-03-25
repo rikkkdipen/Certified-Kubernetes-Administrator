@@ -1,0 +1,115 @@
+NODE AFFINITY — QUESTIONS & ANSWERS
+===================================
+
+1) Q: What is Node Affinity?
+   A: Node Affinity is an advanced Kubernetes scheduling feature that allows Pods to be scheduled on nodes based on node labels.
+
+2) Q: What is the difference between nodeSelector and Node Affinity?
+   A:
+   - nodeSelector is simple exact key=value matching
+   - Node Affinity is more powerful and supports advanced operators and soft preferences
+
+3) Q: Where is Node Affinity written in the Pod manifest?
+   A: Under spec.affinity.nodeAffinity
+
+4) Q: What are the two main types of Node Affinity?
+   A:
+   - requiredDuringSchedulingIgnoredDuringExecution
+   - preferredDuringSchedulingIgnoredDuringExecution
+
+5) Q: What does requiredDuringSchedulingIgnoredDuringExecution mean?
+   A: The Pod must be scheduled only on nodes that match the rule, otherwise it stays Pending.
+
+6) Q: What does preferredDuringSchedulingIgnoredDuringExecution mean?
+   A: The scheduler prefers matching nodes, but the Pod can still run on non-matching nodes if needed.
+
+7) Q: What does IgnoredDuringExecution mean?
+   A: The rule is checked only during scheduling. If node labels change later, already running Pods are not automatically evicted.
+
+8) Q: If a Pod is already running and the matching node label is removed, will the Pod fail immediately?
+   A: No.
+
+9) Q: Why does removing the label not fail the running Pod?
+   A: Because Node Affinity is not continuously enforced after scheduling when it uses IgnoredDuringExecution.
+
+10) Q: What happens if you delete and recreate the Pod after removing the required label?
+    A: The scheduler checks the Node Affinity again, and if no node matches, the Pod stays Pending.
+
+11) Q: What is the difference between required and preferred Node Affinity in backend behavior?
+    A:
+    - required = used in filtering stage
+    - preferred = used in scoring stage
+
+12) Q: What are the most common operators in Node Affinity?
+    A:
+    - In
+    - NotIn
+    - Exists
+    - DoesNotExist
+    - Gt
+    - Lt
+
+13) Q: What does the operator In mean?
+    A: The node label value must be one of the specified values.
+
+14) Q: What does NotIn mean?
+    A: The node label value must not be one of the specified values.
+
+15) Q: What does Exists mean?
+    A: The node must have that label key.
+
+16) Q: What does DoesNotExist mean?
+    A: The node must not have that label key.
+
+17) Q: What is the difference between nodeSelectorTerms and matchExpressions?
+    A:
+    - matchExpressions inside one term work like AND
+    - multiple nodeSelectorTerms work like OR
+
+18) Q: If two matchExpressions are inside one nodeSelectorTerm, how are they evaluated?
+    A: Both must match.
+
+19) Q: If there are multiple nodeSelectorTerms, how are they evaluated?
+    A: If any one term matches, the node is eligible.
+
+20) Q: What happens in the backend when a Pod with required Node Affinity is created?
+    A:
+    - scheduler checks all nodes
+    - removes nodes that do not match
+    - chooses from remaining nodes
+    - if none remain, Pod stays Pending
+
+21) Q: What happens in the backend when a Pod with preferred Node Affinity is created?
+    A:
+    - scheduler still checks all nodes
+    - matching nodes get higher score
+    - best scoring node is preferred
+
+22) Q: Does Node Affinity bypass the scheduler?
+    A: No.
+
+23) Q: Can a Pod match Node Affinity and still fail later?
+    A: Yes, because image pull, runtime, resource, or network issues can still happen after scheduling.
+
+24) Q: What command helps you verify node labels?
+    A: kubectl get nodes --show-labels
+
+25) Q: What command helps you understand why a Pod is Pending?
+    A: kubectl describe pod <pod-name>
+
+26) Q: What command helps you see on which node the Pod was placed?
+    A: kubectl get pods -o wide
+
+27) Q: What is the difference between Node Affinity and Taints/Tolerations?
+    A:
+    - Node Affinity attracts Pods to matching nodes
+    - Taints repel Pods from nodes unless tolerated
+
+28) Q: What is the best one-line interview answer for Node Affinity?
+    A: Node Affinity is an advanced label-based scheduling mechanism that lets a Pod define hard requirements or soft preferences for node selection.
+
+29) Q: What is the biggest learning from practical Node Affinity labs?
+    A: Node Affinity controls scheduling time, not continuous runtime enforcement.
+
+30) Q: What is the shortest memory line?
+    A: required = must match, preferred = try to match.
