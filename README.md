@@ -276,7 +276,7 @@ You can contribute by:
   <a href="https://github.com/rikkkdipen">
     <img src="https://img.shields.io/badge/GitHub-rikkkdipen-111827?style=for-the-badge&logo=github&logoColor=white" />
   </a>
-  <a href="https://www.linkedin.com/in/rikkkdipen/">
+  <a href="https://www.linkedin.com/in/dipenrikkaame/">
     <img src="https://img.shields.io/badge/LinkedIn-Dipen-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" />
   </a>
 </p>
