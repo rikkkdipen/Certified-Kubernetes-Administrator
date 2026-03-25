@@ -1,0 +1,105 @@
+NODE SELECTORS — QUESTIONS & ANSWERS
+====================================
+
+1) Q: What is a nodeSelector?
+   A: nodeSelector is the simplest Kubernetes mechanism used to schedule a Pod only onto nodes that have specific labels.
+
+2) Q: Where is nodeSelector written?
+   A: Inside the Pod spec.
+
+3) Q: What does this mean?
+   nodeSelector:
+     zone: blue
+   A: The Pod can be scheduled only on nodes that have the label zone=blue.
+
+4) Q: Does nodeSelector bypass the scheduler?
+   A: No. The scheduler still runs. nodeSelector only filters which nodes are eligible.
+
+5) Q: Is nodeSelector a hard rule or a soft preference?
+   A: It is a hard rule.
+
+6) Q: What happens if no node matches the nodeSelector?
+   A: The Pod stays Pending.
+
+7) Q: What happens if multiple nodes match the nodeSelector?
+   A: The scheduler chooses one of the matching nodes.
+
+8) Q: How do you see node labels?
+   A: kubectl get nodes --show-labels
+
+9) Q: How do you add a label to a node?
+   A: kubectl label nodes <node-name> key=value
+
+10) Q: How do you remove a label from a node?
+    A: kubectl label nodes <node-name> key-
+
+11) Q: What is the difference between nodeSelector and nodeName?
+    A:
+    - nodeSelector filters eligible nodes and scheduler chooses one
+    - nodeName directly binds Pod to one exact node and bypasses scheduler
+
+12) Q: What is the difference between nodeSelector and node affinity?
+    A:
+    - nodeSelector is simple exact match
+    - node affinity is more expressive and advanced
+
+13) Q: If a Pod is already running and you remove the node label, will the Pod fail immediately?
+    A: No.
+
+14) Q: Why does removing the label not fail the already running Pod?
+    A: Because nodeSelector is checked only during scheduling, not continuously after the Pod is running.
+
+15) Q: How do you actually see the effect after removing the label?
+    A: Delete the running Pod and recreate it. Then the scheduler checks nodeSelector again.
+
+16) Q: What happens when you recreate the Pod after removing the matching node label?
+    A: The Pod stays Pending if no node matches.
+
+17) Q: Why is this an important practical learning?
+    A: Because it shows the difference between scheduling-time rules and runtime behavior.
+
+18) Q: In the practical, why did the Pod still run after removing the label?
+    A: Because it was already scheduled and bound to the node before the label was removed.
+
+19) Q: In the practical, what did it mean when the Pod showed ErrImagePull?
+    A: Scheduling had succeeded, but container startup failed at the image pull stage.
+
+20) Q: What does this teach?
+    A: A Pod can be scheduled successfully and still fail later due to runtime issues like image pulling.
+
+21) Q: What are the 3 major categories of problems you saw in the practical?
+    A:
+    - YAML / manifest problems
+    - scheduling problems
+    - runtime / image pull problems
+
+22) Q: What command helps you check where the Pod got scheduled?
+    A: kubectl get pods -o wide
+
+23) Q: What command helps you understand why a Pod is Pending?
+    A: kubectl describe pod <pod-name>
+
+24) Q: What command helps you verify node labels?
+    A: kubectl get nodes --show-labels
+
+25) Q: If nodeSelector has multiple labels, do all need to match?
+    A: Yes.
+
+26) Q: Example:
+    nodeSelector:
+      zone: green
+      disktype: ssd
+    What does this mean?
+    A: The Pod can schedule only on nodes that have both zone=green and disktype=ssd.
+
+27) Q: Is nodeSelector continuously re-evaluated after Pod scheduling?
+    A: No.
+
+28) Q: What is the best one-line interview answer for nodeSelector?
+    A: nodeSelector is a hard scheduling filter that allows a Pod to run only on nodes whose labels exactly match the specified key-value pairs.
+
+29) Q: What was the biggest learning from the practical?
+    A: nodeSelector controls scheduling time, not what happens continuously after the Pod is already running.
+
+30) Q: What is the simplest memory line?
+    A: Label the node, match the label in nodeSelector, and the scheduler will consider only those matching nodes.

@@ -1,0 +1,92 @@
+NODE SELECTORS — MISC / QUICK REVISION
+======================================
+
+Quick memory
+------------
+- labels are on nodes
+- nodeSelector is on Pods
+- scheduler matches them
+
+Most important rule
+-------------------
+nodeSelector is checked only during scheduling.
+
+That means:
+- Pod already running -> removing label does not kill it
+- Pod recreated later -> scheduler checks again
+
+Fast flow
+---------
+1. label node
+2. create Pod with nodeSelector
+3. scheduler filters nodes
+4. Pod lands on matching node
+5. after running, selector is not continuously enforced
+
+Examples
+--------
+Label node:
+kubectl label nodes desktop-worker zone=blue
+
+Check labels:
+kubectl get nodes --show-labels
+
+Pod selector:
+nodeSelector:
+  zone: blue
+
+Remove label:
+kubectl label nodes desktop-worker zone-
+
+Most common mistakes
+--------------------
+- nodeSelectors instead of nodeSelector
+- wrong indentation
+- wrong key/value spelling
+- thinking running Pod will fail after label removal
+- confusing image pull errors with scheduling errors
+
+Important distinction
+---------------------
+Scheduling success:
+- Pod assigned to a node
+
+Runtime success:
+- image pulled
+- container started
+- Pod running
+
+A Pod can pass scheduling and still fail at runtime.
+
+Useful debug commands
+---------------------
+kubectl get nodes --show-labels
+kubectl get pods -o wide
+kubectl describe pod <pod-name>
+
+Best learning from your practical
+---------------------------------
+- label match -> Pod schedules
+- no label match -> Pod stays Pending
+- remove label after running -> Pod still stays running
+- recreate after removing label -> Pod goes Pending
+
+Best short explanation
+----------------------
+nodeSelector is a hard scheduling-time filter, not a runtime enforcement mechanism.
+
+Best comparison
+---------------
+nodeSelector:
+- simple
+- exact match
+- hard requirement
+
+node affinity:
+- advanced
+- more operators
+- can also do preferences
+
+Interview line
+--------------
+nodeSelector tells Kubernetes to schedule a Pod only on nodes with specific labels, but once the Pod is already running, removing that label does not automatically reschedule or fail the Pod.

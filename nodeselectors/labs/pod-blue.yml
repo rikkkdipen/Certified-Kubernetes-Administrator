@@ -1,0 +1,19 @@
+# label the node using
+# kubectl label nodes <nodename> <key=value>
+# eg: kubectl label nodes node1 zone=blue
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-blue
+  labels:
+    app: nginx
+    env: lab
+spec:
+  nodeSelector:
+    zone: blue
+  containers:
+    - name: nginx
+      image: nginx:1.25-alpine
+      ports:
+        - containerPort: 80
