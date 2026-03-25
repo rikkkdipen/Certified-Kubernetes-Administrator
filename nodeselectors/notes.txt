@@ -1,0 +1,185 @@
+NODE SELECTORS (KodeKloud CKA Notes)
+====================================
+
+1) What is a nodeSelector?
+--------------------------
+- nodeSelector is the simplest way to tell Kubernetes:
+  "Schedule this Pod only on nodes that have these labels."
+
+- It works by matching key-value labels on nodes.
+
+Example:
+spec:
+  nodeSelector:
+    zone: blue
+
+This means:
+- the Pod can be scheduled only on nodes that have:
+  zone=blue
+
+2) Why do we need nodeSelector?
+-------------------------------
+By default, the scheduler can place Pods on any suitable node.
+
+Sometimes we want more control, for example:
+- run a Pod on a specific type of node
+- use nodes with SSD / high memory / GPU
+- separate workloads across different worker nodes
+- learn how scheduling filters work
+
+3) How does nodeSelector work?
+------------------------------
+Step 1:
+- Label a node
+
+Example:
+kubectl label nodes desktop-worker zone=blue
+
+Step 2:
+- Create a Pod with:
+  nodeSelector:
+    zone: blue
+
+Step 3:
+- Scheduler checks all nodes
+- It filters out nodes that do not match the selector
+- It keeps only nodes whose labels match exactly
+- It chooses one of the matching nodes
+
+Important:
+- nodeSelector does NOT bypass the scheduler
+- It only narrows the scheduler's options
+
+4) Very important understanding
+-------------------------------
+nodeSelector is checked only during scheduling.
+
+This means:
+- If the Pod is already scheduled and running,
+  removing the label from the node will NOT automatically remove or fail the Pod.
+
+- But if the Pod is deleted and recreated,
+  the scheduler checks nodeSelector again.
+  If no node matches, the Pod stays Pending.
+
+This is one of the most important practical learnings.
+
+5) nodeSelector is a hard requirement
+-------------------------------------
+nodeSelector is strict.
+
+If the requested label is not found on any node:
+- Pod will stay Pending
+
+Kubernetes will NOT schedule it somewhere else just to help.
+
+Example:
+spec:
+  nodeSelector:
+    zone: red
+
+If no node has:
+  zone=red
+then:
+- Pod stays Pending
+
+6) Multiple labels in nodeSelector
+----------------------------------
+If multiple labels are given, ALL of them must match.
+
+Example:
+spec:
+  nodeSelector:
+    zone: green
+    disktype: ssd
+
+This means the node must have:
+- zone=green
+- disktype=ssd
+
+This is an AND condition.
+
+7) nodeSelector vs nodeName
+---------------------------
+A) nodeSelector
+- scheduler still runs
+- chooses from matching labeled nodes
+- recommended for normal use
+
+B) nodeName
+- directly forces a Pod onto one exact node
+- bypasses scheduler
+- used more for manual scheduling / special cases
+
+8) nodeSelector vs node affinity
+--------------------------------
+nodeSelector:
+- simple
+- exact label matching only
+
+node affinity:
+- more advanced
+- supports operators like In, NotIn, Exists
+- supports soft preferences too
+
+Memory line:
+- nodeSelector = simple exact match
+- node affinity = advanced scheduling rules
+
+9) Common commands used in nodeSelector practicals
+--------------------------------------------------
+Check nodes:
+kubectl get nodes
+
+Check node labels:
+kubectl get nodes --show-labels
+
+Label a node:
+kubectl label nodes desktop-worker zone=blue
+
+Remove a label:
+kubectl label nodes desktop-worker zone-
+
+Apply Pod:
+kubectl apply -f pod-blue.yml
+
+Check Pod scheduling:
+kubectl get pods -o wide
+
+Describe Pod:
+kubectl describe pod nginx-blue
+
+10) Common problems faced in labs
+---------------------------------
+A) YAML mistakes
+- wrong indentation
+- wrong field name
+- nodeSelectors instead of nodeSelector
+- wrong containers structure
+
+B) Pod immutability
+- some Pod spec fields cannot be updated directly after creation
+- solution:
+  delete and recreate Pod
+
+C) Image pull issue confused with scheduling issue
+- Pod may schedule correctly but still fail later at image pull stage
+- Example:
+  ErrImagePull / ImagePullBackOff
+
+Important:
+- scheduling success != Pod fully running
+
+11) Results from practical understanding
+----------------------------------------
+From the labs, we learned:
+- if node label matches nodeSelector, Pod gets scheduled there
+- if no node matches, Pod stays Pending
+- if label is removed after scheduling, running Pod keeps running
+- if Pod is recreated after label removal, it stays Pending
+- scheduler checks nodeSelector only when scheduling the Pod
+
+12) Best one-line summary
+-------------------------
+- nodeSelector is a hard scheduling filter based on exact node labels.
+- It decides where a Pod can be scheduled, but it is not continuously enforced after the Pod is already running.

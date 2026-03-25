@@ -1,0 +1,116 @@
+NODE SELECTOR LABS — COMMANDS USED
+==================================
+
+1) Check all nodes
+------------------
+kubectl get nodes
+
+2) Check all nodes with labels
+------------------------------
+kubectl get nodes --show-labels
+
+3) Add a label to a node for blue zone
+--------------------------------------
+kubectl label nodes <node-name> zone=blue
+
+Example:
+kubectl label nodes desktop-worker zone=blue
+
+4) Add a label to a node for red zone
+-------------------------------------
+kubectl label nodes <node-name> zone=red
+
+Example:
+kubectl label nodes desktop-worker3 zone=red
+
+5) Apply the blue pod manifest
+------------------------------
+kubectl apply -f pod-blue.yml
+
+6) Apply the red pod manifest
+-----------------------------
+kubectl apply -f pod-red.yml
+
+7) Check pod scheduling and node placement
+------------------------------------------
+kubectl get pods -o wide
+
+8) Describe the blue pod for detailed events/debugging
+------------------------------------------------------
+kubectl describe pod nginx-blue
+
+9) Describe the red pod for detailed events/debugging
+-----------------------------------------------------
+kubectl describe pod nginx-red
+
+10) Delete a pod when Pod spec update is not allowed
+----------------------------------------------------
+kubectl delete pod nginx-blue
+kubectl delete pod nginx-red
+
+11) Recreate the pod after deleting it
+--------------------------------------
+kubectl apply -f pod-blue.yml
+kubectl apply -f pod-red.yml
+
+12) Remove a label from a node
+------------------------------
+kubectl label nodes <node-name> zone-
+
+Example:
+kubectl label nodes desktop-worker3 zone-
+
+13) Reapply the same manifest after removing the label
+------------------------------------------------------
+kubectl apply -f pod-red.yml
+
+14) Check if the pod stayed unchanged
+-------------------------------------
+kubectl get pods -o wide
+
+15) Watch pod status continuously (optional but useful)
+-------------------------------------------------------
+kubectl get pods -w
+
+16) Troubleshoot image pull issue
+---------------------------------
+kubectl describe pod nginx-blue
+
+17) Optional image pull troubleshooting done during lab
+-------------------------------------------------------
+docker pull nginx:1.25-alpine
+
+18) Optional kind image load (if needed for local cluster)
+----------------------------------------------------------
+kind load docker-image nginx:1.25-alpine
+
+LAB FLOW SUMMARY
+================
+A) Blue pod success flow
+------------------------
+kubectl get nodes --show-labels
+kubectl label nodes desktop-worker zone=blue
+kubectl apply -f pod-blue.yml
+kubectl get pods -o wide
+kubectl describe pod nginx-blue
+
+B) Red pod pending -> success flow
+----------------------------------
+kubectl apply -f pod-red.yml
+kubectl get pods -o wide
+kubectl describe pod nginx-red
+kubectl label nodes desktop-worker3 zone=red
+kubectl get pods -o wide
+
+C) Label removal learning flow
+------------------------------
+kubectl label nodes desktop-worker3 zone-
+kubectl get nodes --show-labels
+kubectl get pods -o wide
+
+D) Recreate pod to test scheduling again
+----------------------------------------
+kubectl delete pod nginx-red
+kubectl apply -f pod-red.yml
+kubectl get pods -o wide
+kubectl describe pod nginx-red
