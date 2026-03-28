@@ -1,0 +1,58 @@
+name: YAML Lint
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+
+jobs:
+  yaml-lint:
+    name: yaml-lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+
+      - name: Install yamllint
+        run: python -m pip install --upgrade pip yamllint
+
+      - name: Find changed YAML files
+        id: changed-yaml
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git diff --name-only --diff-filter=ACMR "${BASE_SHA}" "${HEAD_SHA}" \
+            | grep -E '\.(yml|yaml)$' > changed-yaml.txt || true
+
+          if [ ! -s changed-yaml.txt ]; then
+            echo "found=false" >> "${GITHUB_OUTPUT}"
+            echo "No YAML files changed in this pull request."
+            exit 0
+          fi
+
+          echo "found=true" >> "${GITHUB_OUTPUT}"
+          echo "YAML files to lint:"
+          cat changed-yaml.txt
+
+      - name: Run yamllint
+        if: steps.changed-yaml.outputs.found == 'true'
+        run: |
+          while IFS= read -r file; do
+            yamllint -c .yamllint "${file}"
+          done < changed-yaml.txt
