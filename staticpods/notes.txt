@@ -1,0 +1,120 @@
+STATIC PODS - DETAILED NOTES
+
+1. Definition
+A Static Pod is a Pod managed directly by kubelet from a local manifest file on a node.
+
+2. Core Idea
+Manifest file on node + kubelet watches file + kubelet runs Pod.
+
+3. Source of Truth
+The real source of truth is the local manifest file on the node filesystem, not the API server object.
+
+4. Common Purpose
+Static Pods are mainly used for node-local critical services and bootstrapping control plane components.
+
+5. Typical Location
+In kubeadm-based clusters, static pod manifests are commonly stored in:
+/etc/kubernetes/manifests
+
+6. Managing Component
+The kubelet is the component responsible for creating and managing Static Pods.
+
+7. Scheduler Involvement
+No scheduler is involved in placing a Static Pod. The Pod always runs on the node where the manifest exists.
+
+8. Node Binding
+Static Pods are inherently tied to a specific node.
+
+9. Lifecycle Based on Files
+- Add file -> Pod created
+- Modify file -> Pod recreated/updated
+- Remove file -> Pod removed
+
+10. Kubelet Configuration
+The kubelet needs a static pod path configured, often through:
+staticPodPath: /etc/kubernetes/manifests
+
+11. Mirror Pods
+When the API server is available, kubelet creates a mirror pod for visibility in the Kubernetes API.
+
+12. Mirror Pod Purpose
+Mirror pods exist only so that static pods can be seen via kubectl and the API.
+
+13. Mirror Pod Limitation
+A mirror pod is not the actual definition source and should not be treated as the primary object for management.
+
+14. Control Plane Use Case
+In kubeadm clusters, the following often run as Static Pods:
+- kube-apiserver
+- kube-controller-manager
+- kube-scheduler
+- etcd
+
+15. Why Control Plane Uses Static Pods
+Static Pods solve the bootstrap problem by allowing kubelet to start control plane components even before full API-based orchestration is available.
+
+16. Static Pod vs Normal Pod
+Normal Pod:
+- created via API server
+- may be scheduled on any node
+- centrally managed
+
+Static Pod:
+- created via local manifest
+- always tied to the same node
+- managed directly by kubelet
+
+17. Static Pod vs DaemonSet
+DaemonSet:
+- centrally managed
+- one Pod on each matching node
+- automatically adapts to node changes
+
+Static Pod:
+- local to one node
+- manual placement per node
+- no cluster-wide controller behavior
+
+18. Static Pod vs Deployment
+Deployment:
+- replica-based
+- scheduler involved
+- app workload oriented
+
+Static Pod:
+- no replicas
+- no scheduler
+- node-specific
+
+19. Removal Behavior
+Deleting the mirror pod via kubectl does not permanently remove the Static Pod if the manifest file remains on disk.
+
+20. Correct Removal
+To fully remove a Static Pod, delete or move the manifest file from the kubelet static pod directory.
+
+21. Important File Paths
+- /etc/kubernetes/manifests
+- /var/lib/kubelet/config.yaml
+
+22. Troubleshooting Checklist
+- Is kubelet running?
+- Is staticPodPath configured?
+- Does manifest file exist?
+- Is YAML valid?
+- Is image valid?
+- Are there runtime errors?
+- Are mirror pods visible?
+
+23. CKA-Relevant Skills
+- identify static pod path
+- create a static pod manifest
+- place it in the correct location
+- inspect control plane static pod manifests
+- understand mirror pod behavior
+- distinguish static pod from daemonset/deployment
+
+24. Key Limitation
+Static Pods do not move across nodes, do not scale with replicas, and are not suitable for general cluster-wide workload orchestration.
+
+25. Strong Mental Model
+A Static Pod is a node-local Pod directly managed by kubelet from a filesystem manifest, optionally represented in the API as a mirror pod.

@@ -1,0 +1,16 @@
+#keep the file in /etc/kubernetes/manifests/staticpods.yaml'
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: static-nginx
+  namespace: default
+  labels:
+    app: static-nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:stable-alpine
+    ports:
+    - containerPort: 80
+

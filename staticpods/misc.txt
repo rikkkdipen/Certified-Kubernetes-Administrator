@@ -1,0 +1,61 @@
+MISC - STATIC PODS
+
+1. Easy Memory Line
+Static Pod = local file on node, kubelet runs it.
+
+2. Best Real-World Example
+Control plane components in kubeadm clusters are often Static Pods.
+
+3. Most Common Directory to Remember
+/etc/kubernetes/manifests
+
+4. Most Important Config Keyword
+staticPodPath
+
+5. Common Trap
+Students think Static Pods are scheduled like normal Pods.
+They are not. They are node-bound.
+
+6. Another Common Trap
+Students think deleting the pod using kubectl permanently removes it.
+If the manifest file still exists, kubelet recreates it.
+
+7. Mirror Pod Reminder
+Mirror pod is for visibility only.
+Local manifest file is the real source.
+
+8. Fast Comparison
+Deployment = replica-based apps
+DaemonSet = one Pod per matching node
+Static Pod = local kubelet-managed Pod on one node
+
+9. Best Use Cases
+- kube-apiserver
+- etcd
+- kube-scheduler
+- kube-controller-manager
+- node-local critical bootstrap workloads
+
+10. Bad Use Case
+Running a log agent on every node manually through Static Pods is possible but not ideal; DaemonSet is the better solution.
+
+11. Debugging Tip
+If a control plane pod is unhealthy in a kubeadm cluster, check:
+- /etc/kubernetes/manifests
+- kubelet status
+- container runtime logs
+
+12. Exam Tip
+If the question says “create a Pod directly on the node without relying on scheduler/API workflow,” think Static Pod.
+
+13. Practical Tip
+To create one:
+- write a Pod YAML
+- copy it into /etc/kubernetes/manifests
+- kubelet handles the rest
+
+14. Important Warning
+Do not confuse the mirror pod name you see in kubectl with the source file name on disk.
+
+15. One-Liner Definition
+A Static Pod is a kubelet-managed Pod created from a local manifest file on a node.
