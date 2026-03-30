@@ -1,0 +1,77 @@
+MULTIPLE SCHEDULERS — QUESTIONS & ANSWERS
+=========================================
+
+1) Q: What are multiple schedulers in Kubernetes?
+   A: It means a cluster can run the default scheduler and additional schedulers or scheduler profiles at the same time.
+
+2) Q: What is the default scheduler name in Kubernetes?
+   A: default-scheduler
+
+3) Q: Which Pod field decides which scheduler should handle the Pod?
+   A: spec.schedulerName
+
+4) Q: What happens if a Pod does not specify schedulerName?
+   A: It is scheduled by default-scheduler.
+
+5) Q: What happens if a Pod specifies schedulerName: my-scheduler?
+   A: A scheduler/profile named my-scheduler must exist and be running, otherwise the Pod stays Pending.
+
+6) Q: Does schedulerName select a node directly?
+   A: No. It only selects which scheduler is responsible for choosing the node.
+
+7) Q: What is the main purpose of running multiple schedulers?
+   A: To support different scheduling logic or policies for different workloads.
+
+8) Q: Can Kubernetes run multiple scheduler profiles in one kube-scheduler process?
+   A: Yes.
+
+9) Q: In modern Kubernetes, what must be unique for each scheduler profile?
+   A: schedulerName
+
+10) Q: If a Pod uses a scheduler name that does not exist, what state will it remain in?
+    A: Pending
+
+11) Q: Why does it remain Pending?
+    A: Because no scheduler is available to bind that Pod to a node.
+
+12) Q: What is the easiest safe practical to understand multiple schedulers?
+    A: Create one Pod with schedulerName: default-scheduler and one with a fake scheduler name, then compare behavior.
+
+13) Q: How do you check scheduler Pods in the cluster?
+    A: kubectl get pods -n kube-system
+
+14) Q: How do you confirm scheduling activity for a Pod?
+    A: kubectl describe pod <pod-name> and kubectl get events
+
+15) Q: What command helps you inspect scheduler logs?
+    A: kubectl logs <scheduler-pod> -n kube-system
+
+16) Q: What does the scheduler actually do in the backend?
+    A: It watches unscheduled Pods, filters/scans nodes, chooses one suitable node, and binds the Pod to it.
+
+17) Q: What happens after the scheduler binds the Pod?
+    A: kubelet on the chosen node starts the Pod.
+
+18) Q: Does a successful scheduler decision guarantee a Running Pod?
+    A: No. The Pod can still fail later because of image pull, runtime, or resource issues.
+
+19) Q: What is the relationship between schedulerName and KubeSchedulerProfile?
+    A: Pod.spec.schedulerName must match the schedulerName configured for the scheduler/profile.
+
+20) Q: What is the difference between separate custom scheduler deployment and multiple scheduler profiles?
+    A: Separate deployment means another scheduler process/Pod; multiple profiles means one kube-scheduler process exposing multiple named scheduling profiles.
+
+21) Q: What is the biggest beginner misconception?
+    A: Thinking schedulerName directly chooses the node. It only chooses the scheduler.
+
+22) Q: What command shows that a Pod using a non-existent scheduler is stuck?
+    A: kubectl get pods
+
+23) Q: What command gives detailed event/debug information?
+    A: kubectl describe pod <pod-name>
+
+24) Q: What is the best one-line interview answer?
+    A: Multiple schedulers let different schedulers or scheduler profiles run in the same cluster, and Pods choose the intended one through spec.schedulerName.
+
+25) Q: What is the shortest memory line?
+    A: schedulerName chooses the scheduler, not the node.

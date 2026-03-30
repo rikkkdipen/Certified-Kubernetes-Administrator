@@ -1,0 +1,197 @@
+MULTIPLE SCHEDULERS (KodeKloud CKA Notes)
+=========================================
+
+1) What are multiple schedulers?
+--------------------------------
+- Kubernetes has a default scheduler called:
+  default-scheduler
+- A cluster can also run one or more additional schedulers.
+- Pods can choose which scheduler should schedule them by using:
+  spec.schedulerName
+
+Simple idea:
+- One cluster
+- Multiple schedulers
+- Pod chooses scheduler by name
+
+2) Why do we need multiple schedulers?
+--------------------------------------
+Sometimes the default scheduler is enough.
+But in some cases, you may want:
+- custom scheduling logic
+- different scheduling policies for special workloads
+- custom plugins/profiles
+- experimentation or learning
+
+Examples:
+- one scheduler for normal workloads
+- another scheduler for a special type of workload
+
+3) Default behavior
+-------------------
+If a Pod does not mention schedulerName:
+- Kubernetes uses default-scheduler
+
+So:
+- no schedulerName -> default-scheduler
+- schedulerName: my-scheduler -> my-scheduler must exist and be running
+
+4) Main field to remember
+-------------------------
+The most important field is:
+
+spec:
+  schedulerName: my-scheduler
+
+This tells Kubernetes:
+- "Do not let the default scheduler schedule this Pod"
+- "Wait for the scheduler named my-scheduler"
+
+5) Important understanding
+--------------------------
+schedulerName does not select a node directly.
+It only selects WHICH SCHEDULER will decide the node.
+
+So the flow is:
+- Pod created
+- Scheduler checks Pod
+- Matching scheduler decides node
+- Pod gets bound to node
+
+6) What happens if the scheduler does not exist?
+------------------------------------------------
+If a Pod has:
+  schedulerName: my-scheduler
+
+but no scheduler with that name is running:
+- Pod stays Pending
+- It will wait forever until that scheduler appears
+
+This is a very important practical concept.
+
+7) Classic KodeKloud-style idea
+-------------------------------
+KodeKloud explains multiple schedulers using the idea of:
+- run another scheduler alongside the default scheduler
+- then create Pods with schedulerName to use it
+
+So in labs:
+- some Pods use default-scheduler
+- some Pods use custom scheduler
+
+8) Current Kubernetes model
+---------------------------
+There are two practical ways to think about it:
+
+A) Separate scheduler deployment
+- Run another scheduler Pod/Deployment
+- Give it its own scheduler name
+- Pods use schedulerName to target it
+
+B) Multiple scheduler profiles
+- One kube-scheduler process can have multiple profiles
+- Each profile has a unique schedulerName
+- Pods still choose using spec.schedulerName
+
+For CKA understanding, the key part is the same:
+- schedulerName on the Pod must match a real scheduler/profile name
+
+9) Backend working
+------------------
+Step 1:
+- Pod is created in the API server
+
+Step 2:
+- Pod has a field:
+  spec.schedulerName
+
+Step 3:
+- Schedulers watch unscheduled Pods
+- A scheduler only works on Pods that match its own scheduler name
+
+Step 4:
+- Matching scheduler evaluates possible nodes
+- It uses its scheduling logic/plugins/policies
+
+Step 5:
+- Scheduler picks a node and binds the Pod
+
+Step 6:
+- Kubelet on that node starts the Pod
+
+Important:
+- schedulerName only decides which scheduler handles the Pod
+- it does not itself mean success
+- Pod can still fail later due to:
+  - image pull error
+  - resource issues
+  - taints/tolerations
+  - node affinity
+  - runtime/network issues
+
+10) Multiple scheduler profiles
+-------------------------------
+In modern Kubernetes, kube-scheduler can run multiple profiles.
+Each profile:
+- has a unique schedulerName
+- can use different plugins/configuration
+
+Pod selects a profile with:
+  spec.schedulerName
+
+Important:
+- default-scheduler profile should exist
+- if Pod does not specify schedulerName, API server defaults it to default-scheduler
+
+11) Unique names matter
+-----------------------
+All schedulers/profiles must have unique names.
+If Pod says:
+  schedulerName: my-scheduler
+then there must be a scheduler/profile with exactly that name.
+
+12) How to verify which scheduler handled a Pod
+-----------------------------------------------
+Useful commands:
+- kubectl get pods
+- kubectl describe pod <pod-name>
+- kubectl get events
+- kubectl get pods -n kube-system
+- kubectl logs <scheduler-pod> -n kube-system
+
+Events are especially useful because the "Scheduled" event helps confirm that scheduling happened.
+
+13) Common commands used in this topic
+--------------------------------------
+List scheduler Pods:
+kubectl get pods -n kube-system
+
+Create Pod with default scheduler explicitly:
+schedulerName: default-scheduler
+
+Create Pod with custom scheduler:
+schedulerName: my-scheduler
+
+View events:
+kubectl get events
+
+View scheduler logs:
+kubectl logs <scheduler-pod> -n kube-system
+
+14) Common mistakes
+-------------------
+- forgetting that schedulerName must match exactly
+- expecting a Pod with non-existent schedulerName to run
+- confusing scheduler selection with node selection
+- thinking schedulerName itself chooses a node
+- not checking events/logs
+
+15) Most important practical takeaway
+-------------------------------------
+- No schedulerName -> default-scheduler
+- Custom schedulerName -> matching scheduler must exist
+- No matching scheduler running -> Pod stays Pending
+
+16) One-line summary
+--------------------
+Multiple schedulers allow different schedulers or scheduler profiles to coexist in the same cluster, and Pods choose the intended one through spec.schedulerName.

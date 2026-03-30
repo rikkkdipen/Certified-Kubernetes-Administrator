@@ -1,0 +1,57 @@
+MULTIPLE SCHEDULERS — MISC / QUICK REVISION
+===========================================
+
+Quick memory
+------------
+- default-scheduler = normal scheduler
+- schedulerName = which scheduler should handle this Pod
+- no schedulerName = default-scheduler
+
+Most important idea
+-------------------
+schedulerName does NOT pick a node.
+It only picks the scheduler that will try to pick a node.
+
+Fast flow
+---------
+1. Pod is created
+2. Pod has schedulerName
+3. Matching scheduler watches it
+4. Scheduler chooses a node
+5. Pod gets bound
+6. kubelet starts it
+
+Most important failure case
+---------------------------
+- Pod has schedulerName: my-scheduler
+- no scheduler named my-scheduler is running
+- Pod stays Pending
+
+What to check
+-------------
+- kubectl get pods -n kube-system
+- kubectl get events
+- kubectl describe pod <pod-name>
+- kubectl logs <scheduler-pod> -n kube-system
+
+Classic CKA understanding
+-------------------------
+- default scheduler exists
+- custom scheduler can be added
+- Pod can target custom scheduler using schedulerName
+
+Modern Kubernetes note
+----------------------
+One kube-scheduler can expose multiple profiles.
+Each profile has its own schedulerName.
+
+Most common mistakes
+--------------------
+- wrong scheduler name
+- assuming schedulerName forces success
+- not checking events
+- confusing scheduler selection with nodeSelector/nodeAffinity
+
+Best short explanation
+----------------------
+Multiple schedulers means one cluster can have more than one scheduler choice, and Pods select the intended one using spec.schedulerName.
