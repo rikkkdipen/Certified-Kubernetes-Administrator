@@ -1,0 +1,67 @@
+SCHEDULER PROFILES — MISC / QUICK REVISION
+==========================================
+
+Quick Memory
+------------
+- schedulerName → selects scheduler/profile
+- profile → defines scheduling behavior
+- no schedulerName → default-scheduler
+
+Core Idea
+---------
+Scheduler profiles = multiple schedulers inside ONE scheduler
+
+Flow
+----
+Pod created
+→ schedulerName checked
+→ matching profile picks Pod
+→ node selected
+→ Pod bound
+→ kubelet runs container
+
+Golden Rule
+-----------
+schedulerName chooses scheduler, NOT node
+
+Important Failure Case
+---------------------
+schedulerName does not exist
+→ Pod stays Pending
+
+Debug Fast
+----------
+kubectl get pods
+kubectl describe pod <pod>
+kubectl get events
+kubectl logs scheduler -n kube-system
+
+Key Difference
+--------------
+Profiles:
+- one scheduler process
+- multiple behaviors
+
+Multiple schedulers:
+- multiple processes
+
+Advanced Insight
+----------------
+Profiles can:
+- inject node affinity
+- change scoring
+- control scheduling logic
+
+But:
+queueSort must be same across profiles
+
+Most Common Mistakes
+--------------------
+- wrong schedulerName
+- thinking schedulerName selects node
+- ignoring events
+- mixing scheduling vs runtime errors
+
+Best Interview Line
+-------------------
+Scheduler profiles allow a single kube-scheduler to expose multiple scheduling strategies, and Pods select the required one using spec.schedulerName.

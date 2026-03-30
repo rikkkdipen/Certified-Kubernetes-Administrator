@@ -1,0 +1,77 @@
+SCHEDULER PROFILES — QUESTIONS & ANSWERS
+========================================
+
+1) Q: What are scheduler profiles?
+   A: Multiple scheduling configurations inside one kube-scheduler process.
+
+2) Q: Which field selects a scheduler profile?
+   A: spec.schedulerName
+
+3) Q: What happens if schedulerName is not specified?
+   A: default-scheduler is used.
+
+4) Q: Does schedulerName select a node?
+   A: No, it selects which scheduler/profile handles the Pod.
+
+5) Q: What does a scheduler profile contain?
+   A: Plugin configuration and scheduling behavior.
+
+6) Q: Where are scheduler profiles defined?
+   A: In KubeSchedulerConfiguration file.
+
+7) Q: What API version is used?
+   A: kubescheduler.config.k8s.io/v1
+
+8) Q: Can one scheduler process have multiple profiles?
+   A: Yes.
+
+9) Q: What must be unique in profiles?
+   A: schedulerName
+
+10) Q: What happens if schedulerName does not match any profile?
+    A: Pod stays Pending.
+
+11) Q: What are main scheduling steps?
+    A: Filter → Score → Bind
+
+12) Q: What is the role of Filter phase?
+    A: Remove nodes that cannot run the Pod.
+
+13) Q: What is the role of Score phase?
+    A: Rank nodes to choose the best one.
+
+14) Q: What is Bind phase?
+    A: Assign Pod to selected node.
+
+15) Q: Can profiles change scheduling behavior?
+    A: Yes, by enabling/disabling plugins.
+
+16) Q: What is addedAffinity?
+    A: Extra node affinity added by scheduler profile.
+
+17) Q: Does Pod affinity override profile affinity?
+    A: No, both must be satisfied.
+
+18) Q: What must be same across all profiles?
+    A: queueSort plugin configuration.
+
+19) Q: What is difference between profiles and multiple schedulers?
+    A: Profiles = one process, multiple configs; schedulers = multiple processes.
+
+20) Q: What command checks Pod scheduling?
+    A: kubectl describe pod <pod>
+
+21) Q: What indicates successful scheduling?
+    A: PodScheduled = True
+
+22) Q: Does scheduling success guarantee Pod running?
+    A: No.
+
+23) Q: What handles container startup?
+    A: kubelet
+
+24) Q: What are common errors after scheduling?
+    A: ImagePullBackOff, CrashLoopBackOff
+
+25) Q: Best one-line answer?
+    A: Scheduler profiles allow multiple scheduling behaviors in one scheduler, selected by spec.schedulerName.
