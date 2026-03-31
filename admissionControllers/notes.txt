@@ -1,0 +1,313 @@
+ADMISSION CONTROLLERS
+
+Admission Controllers are pieces of code that run inside the kube-apiserver.
+
+They intercept API requests after:
+1. Authentication
+2. Authorization
+
+and before:
+3. The object is stored in etcd
+
+So the request flow is:
+
+User / kubectl / API client
+        ->
+Authentication
+        ->
+Authorization
+        ->
+Admission Controllers
+        ->
+Object stored in etcd
+
+Admission Controllers are the final gate before an object becomes part of the cluster state.
+
+--------------------------------------------------
+WHY ADMISSION CONTROLLERS ARE NEEDED
+--------------------------------------------------
+
+Authorization only answers:
+"Is this user allowed to try this action?"
+
+But Kubernetes also needs answers to questions like:
+- Is this object safe?
+- Is this object valid?
+- Does this object follow cluster policy?
+- Should Kubernetes add default values before storing it?
+
+That is what Admission Controllers do.
+
+They solve these main problems:
+
+1. Defaulting
+   - Fill missing values automatically
+
+2. Validation
+   - Reject invalid objects
+
+3. Policy Enforcement
+   - Enforce cluster rules and namespace rules
+
+4. Mutation
+   - Modify the object before storing it
+
+--------------------------------------------------
+WHERE THEY RUN
+--------------------------------------------------
+
+Admission Controllers run in the kube-apiserver.
+
+They do NOT run in:
+- kubelet
+- kube-proxy
+- scheduler
+- controller manager
+- etcd
+
+Very important:
+Admission Controllers are API-server-side logic.
+
+--------------------------------------------------
+WHICH REQUESTS GO THROUGH ADMISSION
+--------------------------------------------------
+
+Admission Controllers mainly act on modifying requests such as:
+- create
+- update
+- delete
+
+They do NOT normally act on read-only requests like:
+- get
+- list
+- watch
+
+--------------------------------------------------
+TWO TYPES OF ADMISSION CONTROLLERS
+--------------------------------------------------
+
+1. Mutating Admission Controllers
+   - They can change the object
+
+2. Validating Admission Controllers
+   - They check the final object
+   - They allow or reject it
+   - They do not mutate it
+
+Simple memory trick:
+
+Mutating = changes object
+Validating = checks object
+
+--------------------------------------------------
+WHAT HAPPENS IF A CONTROLLER REJECTS
+--------------------------------------------------
+
+If any Admission Controller rejects the request,
+the entire API request fails.
+
+The object is NOT stored.
+
+--------------------------------------------------
+AUTHENTICATION vs AUTHORIZATION vs ADMISSION
+--------------------------------------------------
+
+Authentication:
+Who are you?
+
+Authorization:
+Are you allowed to try this action?
+
+Admission:
+Should this exact object be allowed into the cluster?
+Should Kubernetes modify it first?
+
+Best memory line:
+
+Authorization says:
+"You may try."
+
+Admission says:
+"This exact object may enter."
+
+--------------------------------------------------
+IMPORTANT BUILT-IN ADMISSION CONTROLLERS
+--------------------------------------------------
+
+1. NamespaceLifecycle
+   - Prevents creation in non-existent namespaces
+   - Prevents creation in terminating namespaces
+   - Protects important system namespaces
+
+2. LimitRanger
+   - Enforces LimitRange rules
+   - Can apply default CPU/memory requests and limits
+   - Can reject objects violating min/max rules
+
+3. ResourceQuota
+   - Enforces namespace-wide quotas
+   - Limits total resources or object counts
+   - Rejects requests that exceed quota
+
+4. ServiceAccount
+   - If Pod has no serviceAccountName, it can set it to default
+   - Can help inject service account related settings
+
+5. DefaultStorageClass
+   - If PVC has no storageClassName, Kubernetes can assign the default StorageClass
+
+6. PodSecurity
+   - Enforces Pod Security Standards
+   - Works using namespace labels
+   - Modes: enforce, audit, warn
+   - Levels: privileged, baseline, restricted
+
+--------------------------------------------------
+SERVICEACCOUNT ADMISSION CONTROLLER
+--------------------------------------------------
+
+This is one of the easiest mutating examples.
+
+If you create a Pod without:
+spec.serviceAccountName
+
+Kubernetes may automatically set:
+serviceAccountName: default
+
+So if later you see that field in the Pod YAML even though you did not write it,
+that is admission-time mutation.
+
+--------------------------------------------------
+LIMITRANGER ADMISSION CONTROLLER
+--------------------------------------------------
+
+LimitRanger works with LimitRange objects in a namespace.
+
+It can:
+- add default requests/limits if missing
+- reject Pods that exceed allowed min/max boundaries
+
+Example:
+If a Pod has no resource requests/limits,
+LimitRanger can automatically inject default CPU and memory values.
+
+If a Pod requests too much memory or CPU,
+it can be rejected.
+
+Important:
+LimitRange validation happens at admission time only.
+
+Already running Pods are not changed later just because a LimitRange is created.
+
+--------------------------------------------------
+RESOURCEQUOTA ADMISSION CONTROLLER
+--------------------------------------------------
+
+ResourceQuota limits total resource usage or object counts in a namespace.
+
+Examples:
+- total number of Pods
+- total CPU usage
+- total memory usage
+- total PVC count
+
+If a new request would exceed quota,
+the request is rejected during admission.
+
+--------------------------------------------------
+POD SECURITY ADMISSION
+--------------------------------------------------
+
+PodSecurity is the built-in mechanism that enforces Pod Security Standards.
+
+It works through labels on the namespace.
+
+Modes:
+- enforce = reject violating Pods
+- audit = allow but record audit info
+- warn = allow but show warning
+
+Levels:
+- privileged
+- baseline
+- restricted
+
+This is very important in modern Kubernetes.
+
+Older tutorials may mention PodSecurityPolicy (PSP),
+but PSP has been removed.
+
+Modern clusters use Pod Security Admission.
+
+--------------------------------------------------
+DEFAULTSTORAGECLASS ADMISSION CONTROLLER
+--------------------------------------------------
+
+If a PVC is created without:
+storageClassName
+
+and the cluster has a default StorageClass,
+Kubernetes can automatically assign it.
+
+This is another example of admission-time mutation/defaulting.
+
+--------------------------------------------------
+DYNAMIC ADMISSION CONTROL
+--------------------------------------------------
+
+Kubernetes also supports dynamic admission control using webhooks.
+
+Types:
+1. MutatingAdmissionWebhook
+2. ValidatingAdmissionWebhook
+
+These are external webhook-based admission mechanisms.
+
+There is also:
+- ValidatingAdmissionPolicy
+
+This provides declarative validation rules without requiring an external webhook server.
+
+--------------------------------------------------
+WHY ADMISSION CONTROLLERS MATTER IN TROUBLESHOOTING
+--------------------------------------------------
+
+When a resource creation fails, do not immediately blame:
+- scheduler
+- kubelet
+- container runtime
+
+The object may have been rejected before it was ever stored.
+
+That means the problem may be:
+- ResourceQuota
+- LimitRanger
+- PodSecurity
+- NamespaceLifecycle
+- ServiceAccount related admission behavior
+- custom validating webhook
+- admission policy
+
+Good troubleshooting order:
+
+1. Did request reach API server?
+2. Was user authenticated?
+3. Was user authorized?
+4. Did admission reject or mutate the object?
+5. If admitted, did scheduling/runtime fail later?
+
+--------------------------------------------------
+IMPORTANT CKA UNDERSTANDING
+--------------------------------------------------
+
+Admission Controllers are NOT reconciliation controllers.
+
+They do not continuously watch and fix objects like:
+- Deployment controller
+- ReplicaSet controller
+- Node controller
+
+Instead, they act only during the API request path before storage.
+
+That is why they are called Admission Controllers:
+they control whether an object is admitted into the cluster state.

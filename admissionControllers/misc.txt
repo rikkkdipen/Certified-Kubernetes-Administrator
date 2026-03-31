@@ -1,0 +1,139 @@
+MISCELLANEOUS THINGS TO REMEMBER - ADMISSION CONTROLLERS
+
+1. Admission Controllers are not normal reconciliation controllers.
+They do not keep watching and fixing resources forever.
+They act only when an API request comes in.
+
+2. They run in kube-apiserver.
+Not in kubelet.
+Not in scheduler.
+Not in controller manager.
+Not in etcd.
+
+3. The request flow must be crystal clear in your head:
+
+Authentication
+->
+Authorization
+->
+Admission
+->
+Storage in etcd
+
+4. Best memory trick:
+
+Authentication = who are you
+Authorization = can you try
+Admission = can this object enter
+
+5. Another best memory trick:
+
+Mutating = changes object
+Validating = checks final object
+
+6. Big exam trap:
+Do not confuse RBAC denial with admission rejection.
+
+RBAC denial:
+You were not allowed to try.
+
+Admission rejection:
+You were allowed to try, but the object itself was rejected.
+
+7. Big exam trap:
+Do not confuse admission issues with scheduler issues.
+
+Admission issue:
+Object rejected before storage
+
+Scheduler issue:
+Object stored, but no node selected yet
+
+8. Big exam trap:
+Do not confuse admission with kubelet/runtime issues.
+
+If object was rejected before storage,
+kubelet never even got a chance to run it.
+
+9. If a Pod gets serviceAccountName: default automatically,
+that is admission-time mutation.
+
+10. If a PVC gets a storageClassName automatically,
+that is admission-time defaulting.
+
+11. If a Pod gets resource requests/limits automatically,
+that is often LimitRanger mutation.
+
+12. If a Pod is rejected for too many resources,
+that is often LimitRanger or ResourceQuota validation.
+
+13. LimitRange and ResourceQuota are related but not the same.
+
+LimitRange:
+- per-container / per-pod style limits and defaults
+- min/max/default values
+
+ResourceQuota:
+- total namespace-wide usage or object count limits
+
+14. Pod Security Admission is namespace-label based.
+So while troubleshooting,
+always inspect the namespace labels too.
+
+15. Pod Security quick shortcut:
+
+enforce = block
+audit = record
+warn = tell user
+
+16. Old tutorials may talk about PSP (PodSecurityPolicy).
+Modern Kubernetes uses Pod Security Admission instead.
+
+17. If creation fails with words like:
+- forbidden
+- exceeded quota
+- violates limit
+- restricted policy
+- namespace terminating
+
+think: admission controller
+
+18. Admission Controllers are a policy gate plus defaulting layer.
+
+19. They are the last checkpoint before cluster state is changed.
+
+20. Very important conceptual line:
+Authorization decides whether the user may perform the action.
+Admission decides whether the submitted object is acceptable.
+
+21. If any admission step rejects the request,
+the object does not get stored at all.
+
+22. Mutating happens before validating.
+So validating controllers usually see the final mutated object.
+
+23. Admission webhooks are dynamic admission mechanisms.
+They let Kubernetes call external services during admission.
+
+24. Built-in admission plugins are internal to kube-apiserver.
+Webhooks are external callbacks.
+Policies are declarative rule-based mechanisms.
+
+25. Best one-line definition:
+Admission Controllers are kube-apiserver mechanisms that mutate, validate, and enforce policy on API requests before objects are stored.
+
+26. Best exam-ready understanding:
+If the object never got created,
+do not jump straight to scheduler or kubelet.
+First think:
+Was it rejected during admission?
+
+27. Best real-life examples to always remember:
+- ServiceAccount -> default serviceAccountName
+- LimitRanger -> default/reject resource rules
+- ResourceQuota -> reject over quota
+- PodSecurity -> reject insecure Pods
+- DefaultStorageClass -> default storage class on PVC
+
+28. Final golden line:
+Admission Controllers control whether an object is admitted into the cluster state.

@@ -1,0 +1,192 @@
+1. What is an Admission Controller in Kubernetes?
+Answer:
+An Admission Controller is code that runs inside the kube-apiserver and intercepts API requests after authentication and authorization but before the object is stored in etcd. It can mutate, validate, allow, or reject the request.
+
+2. Why do we need Admission Controllers if RBAC already exists?
+Answer:
+RBAC only checks whether a user is allowed to attempt an action. Admission Controllers check whether the actual object being submitted is valid, safe, policy-compliant, and sometimes complete enough to be stored.
+
+3. At what stage do Admission Controllers run?
+Answer:
+They run after authentication and authorization, but before the object is persisted in etcd.
+
+4. Do Admission Controllers work on get, list, and watch requests?
+Answer:
+No. Admission Controllers mainly act on modifying requests like create, update, and delete.
+
+5. What are the two main types of Admission Controllers?
+Answer:
+The two main types are:
+1. Mutating Admission Controllers
+2. Validating Admission Controllers
+
+6. What does a Mutating Admission Controller do?
+Answer:
+It can modify the object before it is stored.
+
+7. What does a Validating Admission Controller do?
+Answer:
+It checks the final object and either allows or rejects it. It does not mutate the object.
+
+8. What happens if one Admission Controller rejects a request?
+Answer:
+The whole API request fails and the object is not stored.
+
+9. What is the difference between authentication, authorization, and admission?
+Answer:
+Authentication checks who the user is.
+Authorization checks whether the user is allowed to perform the action.
+Admission checks whether the actual object should be allowed into the cluster and whether it should be modified first.
+
+10. Why are they called Admission Controllers?
+Answer:
+Because they control whether an object is admitted into the cluster state.
+
+11. Where do Admission Controllers run?
+Answer:
+They run inside the kube-apiserver.
+
+12. Do Admission Controllers run in kubelet?
+Answer:
+No. They are kube-apiserver-side components.
+
+13. Do Admission Controllers run in scheduler?
+Answer:
+No. Scheduling happens after the object has already been admitted and stored.
+
+14. What problem do Admission Controllers solve?
+Answer:
+They solve the problem that “authorized” does not always mean “safe, valid, complete, or policy-compliant.” They provide defaulting, validation, mutation, and policy enforcement before objects are stored.
+
+15. Give one example of mutation by an Admission Controller.
+Answer:
+If a Pod is created without serviceAccountName, Kubernetes may automatically set serviceAccountName: default.
+
+16. Give one example of validation by an Admission Controller.
+Answer:
+A Pod may be rejected if it exceeds ResourceQuota, violates LimitRange, or breaks Pod Security rules.
+
+17. What does NamespaceLifecycle do?
+Answer:
+It prevents operations in non-existent namespaces, terminating namespaces, and protects important system namespaces.
+
+18. What does LimitRanger do?
+Answer:
+It enforces LimitRange rules and can apply default CPU and memory requests/limits to Pods.
+
+19. Can LimitRanger reject Pods?
+Answer:
+Yes. It can reject Pods that violate min/max resource constraints.
+
+20. Can LimitRanger also mutate Pods?
+Answer:
+Yes. It can inject default CPU and memory requests/limits if they are missing.
+
+21. What does ResourceQuota do?
+Answer:
+It enforces namespace-wide quotas like total CPU, memory, storage, or object count limits.
+
+22. What happens if a request exceeds ResourceQuota?
+Answer:
+The request is rejected during admission.
+
+23. What does the ServiceAccount admission controller do?
+Answer:
+It can automatically assign the default ServiceAccount to a Pod if none is specified.
+
+24. What does DefaultStorageClass do?
+Answer:
+It can assign a default StorageClass to a PVC if the PVC does not specify one.
+
+25. What is Pod Security Admission?
+Answer:
+It is the built-in admission mechanism that enforces Pod Security Standards using namespace labels.
+
+26. What are the modes of Pod Security Admission?
+Answer:
+The modes are:
+- enforce
+- audit
+- warn
+
+27. What are the levels of Pod Security Admission?
+Answer:
+The levels are:
+- privileged
+- baseline
+- restricted
+
+28. What does enforce mode do in Pod Security?
+Answer:
+It rejects Pods that violate the configured policy.
+
+29. What does audit mode do in Pod Security?
+Answer:
+It allows the Pod but records an audit annotation/event.
+
+30. What does warn mode do in Pod Security?
+Answer:
+It allows the Pod but shows a warning to the user.
+
+31. What replaced PodSecurityPolicy?
+Answer:
+Pod Security Admission replaced PodSecurityPolicy in modern Kubernetes.
+
+32. What is the difference between built-in Admission Controllers and admission webhooks?
+Answer:
+Built-in Admission Controllers are part of kube-apiserver itself. Admission webhooks are external HTTP callbacks used during admission.
+
+33. What are the two types of admission webhooks?
+Answer:
+- MutatingAdmissionWebhook
+- ValidatingAdmissionWebhook
+
+34. What is ValidatingAdmissionPolicy?
+Answer:
+It is a declarative way to validate requests using policy expressions, without needing an external validating webhook server.
+
+35. Is admission failure the same as scheduling failure?
+Answer:
+No. Admission failure happens before the object is stored. Scheduling failure happens later, after the object is already admitted.
+
+36. Is admission failure the same as RBAC denial?
+Answer:
+No. RBAC denial means the user was not allowed to try. Admission failure means the user was allowed to try, but the object itself was rejected.
+
+37. If a Pod creation fails because of PodSecurity, is that an admission issue or scheduler issue?
+Answer:
+That is an admission issue.
+
+38. If a Pod is Pending because no node matches, is that an admission issue?
+Answer:
+No. That is usually a scheduling issue, because the Pod was already admitted.
+
+39. If a PVC gets a storageClassName even though I did not write one, what likely happened?
+Answer:
+The DefaultStorageClass admission path assigned the default StorageClass.
+
+40. If a Pod shows resource requests and limits that I did not write, what likely happened?
+Answer:
+LimitRanger likely injected default values during admission.
+
+41. Why are Admission Controllers important for CKA?
+Answer:
+Because they are a common reason why resource creation succeeds, fails, or gets modified. Understanding them helps in troubleshooting and cluster policy understanding.
+
+42. Give one best one-line memory trick for admission.
+Answer:
+Authorization says: “You may try.”
+Admission says: “This exact object may enter.”
+
+43. What is the best quick summary of Mutating vs Validating?
+Answer:
+Mutating changes the object.
+Validating checks the final object.
+
+44. Are Admission Controllers continuous background controllers?
+Answer:
+No. They act on API requests only, not continuously in the background.
+
+45. What is the biggest conceptual takeaway about Admission Controllers?
+Answer:
+They are API-server-side mechanisms that default, mutate, validate, and enforce policy before an object becomes part of the cluster state.
