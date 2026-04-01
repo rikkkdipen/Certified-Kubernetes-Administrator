@@ -1,0 +1,168 @@
+SCHEDULER PROFILES (KodeKloud CKA Notes)
+========================================
+
+1) What are Scheduler Profiles?
+-------------------------------
+- Scheduler profiles allow ONE kube-scheduler to behave like MULTIPLE schedulers.
+- Each profile has a unique name called:
+  schedulerName
+
+- Pods select a profile using:
+  spec.schedulerName
+
+So:
+- One scheduler process
+- Multiple scheduling behaviors (profiles)
+
+2) Why do we need Scheduler Profiles?
+-------------------------------------
+- Different workloads need different scheduling logic
+- Customize scheduling behavior without running multiple schedulers
+- Enable/disable plugins per workload type
+
+Example:
+- default-scheduler → normal workloads
+- gpu-scheduler → only schedule on GPU nodes
+
+3) Key Concept
+--------------
+schedulerName does NOT select a node.
+
+It selects WHICH SCHEDULER PROFILE will decide the node.
+
+Flow:
+Pod → schedulerName → matching profile → node selection
+
+4) Configuration File
+---------------------
+Scheduler profiles are defined in:
+
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+
+Example:
+-------------------------------------
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+profiles:
+  - schedulerName: default-scheduler
+  - schedulerName: my-scheduler
+-------------------------------------
+
+This means:
+- One scheduler process
+- Two profiles available
+
+5) Pod Usage
+------------
+Pod chooses profile using:
+
+spec:
+  schedulerName: my-scheduler
+
+If not specified:
+→ default-scheduler is used
+
+6) Backend Working
+------------------
+Step-by-step:
+
+1. Pod is created
+2. Pod contains schedulerName
+3. kube-scheduler watches unscheduled Pods
+4. Matching profile handles the Pod
+5. Scheduler runs plugins:
+   - Filter → remove invalid nodes
+   - Score → rank nodes
+6. Best node selected
+7. Pod is bound to node
+8. Kubelet starts container
+
+IMPORTANT:
+Scheduling success ≠ Pod running
+
+7) Scheduler Plugin Stages (Simplified)
+---------------------------------------
+- Filter → eliminate nodes
+- Score → rank nodes
+- Bind → assign Pod to node
+
+Advanced stages:
+- preFilter, postFilter, preScore, reserve, permit, bind, etc.
+
+8) Custom Behavior with Profiles
+--------------------------------
+Profiles can:
+- enable/disable plugins
+- change scoring logic
+- add node affinity automatically
+- enforce scheduling rules
+
+Example:
+- gpu-scheduler → only schedule on GPU nodes
+- high-priority-scheduler → prefer powerful nodes
+
+9) NodeAffinity in Profiles
+---------------------------
+Profiles can inject extra rules using:
+addedAffinity
+
+This means:
+- Pod must satisfy BOTH:
+  - its own affinity
+  - profile’s affinity
+
+10) Important Rules
+-------------------
+- schedulerName must match EXACTLY
+- profile must exist in scheduler config
+- otherwise Pod stays Pending
+
+- queueSort plugin must be SAME across all profiles
+
+11) Failure Scenario
+--------------------
+If Pod has:
+schedulerName: my-scheduler
+
+but no such profile exists:
+→ Pod stays Pending
+
+12) Debugging Steps
+-------------------
+1. Check Pod schedulerName:
+   kubectl get pod <pod> -o yaml
+
+2. Check scheduler config:
+   verify profiles
+
+3. Check events:
+   kubectl describe pod <pod>
+
+4. Check scheduler logs:
+   kubectl logs <scheduler-pod> -n kube-system
+
+5. Check if scheduling succeeded:
+   PodScheduled = True
+
+13) Scheduler Profiles vs Multiple Schedulers
+---------------------------------------------
+Multiple schedulers:
+- Multiple scheduler processes
+
+Scheduler profiles:
+- One scheduler process
+- Multiple profiles
+
+Pod behavior is SAME in both cases.
+
+14) Most Important Learning
+---------------------------
+- schedulerName selects scheduler/profile
+- profile decides HOW scheduling happens
+- scheduler picks node
+- kubelet runs Pod
+
+15) One-line Summary
+--------------------
+Scheduler profiles allow one kube-scheduler to expose multiple scheduling behaviors, and Pods select the desired one using spec.schedulerName.
