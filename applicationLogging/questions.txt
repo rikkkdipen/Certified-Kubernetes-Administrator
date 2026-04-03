@@ -1,0 +1,106 @@
+1. What is the recommended logging approach for applications running in Kubernetes?
+Answer:
+Applications should write logs to stdout and stderr instead of writing only to local files inside the container. This allows the container runtime and kubelet to capture and expose logs through kubectl logs.
+
+2. Why does Kubernetes prefer applications to log to stdout/stderr?
+Answer:
+Because containers are ephemeral. If logs stay only inside container files, they may be difficult to access or may disappear when the container is recreated. Logging to stdout/stderr makes log collection standardized and easier.
+
+3. What command is used to view logs of a pod?
+Answer:
+kubectl logs <pod-name>
+
+4. If a pod contains multiple containers, how do you get logs for a specific container?
+Answer:
+Use:
+kubectl logs <pod-name> -c <container-name>
+
+5. Why are logs considered container-specific and not pod-wide?
+Answer:
+Because the actual running process is inside a container. A pod is just a wrapper that may hold one or more containers. Each container generates its own stdout/stderr stream.
+
+6. How do you follow logs in real time?
+Answer:
+Use:
+kubectl logs -f <pod-name>
+
+7. What is the purpose of --previous in kubectl logs?
+Answer:
+It shows logs from the previous terminated container instance. This is especially useful when the container is restarting or in CrashLoopBackOff.
+
+8. When is kubectl logs --previous most useful?
+Answer:
+When the container starts, crashes, and is restarted. The previous container instance often contains the real startup failure message.
+
+9. What is the difference between kubectl describe and kubectl logs?
+Answer:
+kubectl describe shows Kubernetes object details and events such as scheduling failures, image pull errors, and probe failures.
+kubectl logs shows the application output from inside the container.
+
+10. If a pod is in ImagePullBackOff, which command is usually more helpful first: kubectl logs or kubectl describe?
+Answer:
+kubectl describe is usually more helpful first because the container may not have started, so there may be little or no application logs.
+
+11. Where are container logs typically stored?
+Answer:
+They are usually stored on the node filesystem by the container runtime, commonly under paths like /var/log/pods/ or /var/log/containers/.
+
+12. Are application logs stored in etcd?
+Answer:
+No. etcd stores Kubernetes cluster state, not application logs.
+
+13. What is node-level logging?
+Answer:
+It means logs are stored locally on each node where containers run.
+
+14. What is cluster-level logging?
+Answer:
+It means logs from different nodes and pods are collected into a centralized backend for searching, retention, and analysis.
+
+15. Why is cluster-level logging important in production?
+Answer:
+Because workloads are distributed across many nodes, pods restart or move, and local logs alone are difficult to search and retain at scale.
+
+16. Why are logging agents like Fluentd or Fluent Bit often run as a DaemonSet?
+Answer:
+Because a DaemonSet ensures one collector pod runs on every node, which is ideal since logs are generated and stored locally on each node.
+
+17. What is a sidecar logging pattern?
+Answer:
+It is a pattern where one container writes logs to a file in a shared volume and another sidecar container reads or ships those logs.
+
+18. Is sidecar logging the preferred pattern for cloud-native apps?
+Answer:
+Not usually. For cloud-native apps, writing directly to stdout/stderr is the preferred pattern. Sidecars are more useful for legacy applications that write to files.
+
+19. How can you get logs from an init container?
+Answer:
+Use:
+kubectl logs <pod-name> -c <init-container-name>
+
+20. What kind of information do Kubernetes events provide that logs may not?
+Answer:
+Events provide Kubernetes lifecycle and infrastructure details such as scheduling, pulling images, mount failures, probe failures, and container start status.
+
+21. How can you inspect control plane component logs in a kubeadm-style cluster?
+Answer:
+Since control plane components often run as static pods in kube-system, you can use:
+kubectl logs -n kube-system <component-pod-name>
+
+22. How are kubelet logs usually inspected?
+Answer:
+Since kubelet is a node service, its logs are often checked on the node using:
+journalctl -u kubelet
+
+23. What happens to logs if a pod is deleted and no centralized logging system exists?
+Answer:
+The logs may be lost or become difficult to access because they were only stored locally on the node.
+
+24. What is the relationship between the application, container runtime, kubelet, and kubectl logs?
+Answer:
+The application writes to stdout/stderr, the container runtime stores the log output on the node, kubelet exposes access to the logs, and kubectl logs retrieves them for the user.
+
+25. What is the most common command combination for troubleshooting a crashing pod?
+Answer:
+kubectl describe pod <pod-name>
+kubectl logs <pod-name> --previous

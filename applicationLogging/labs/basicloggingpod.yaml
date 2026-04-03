@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: basic-logger
+  namespace: logging-lab
+spec:
+  containers:
+    - name: main
+      image: nginx:1.25-alpine
+      command:
+        - sh
+        - -c
+        - |
+          i=1
+          while true; do
+            echo "basic log message number $i"
+            i=$((i+1))
+            sleep 5
+          done

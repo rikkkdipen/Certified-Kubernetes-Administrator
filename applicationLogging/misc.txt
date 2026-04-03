@@ -1,0 +1,54 @@
+KUBERNETES LOGGING - MISC TO REMEMBER
+
+1. Logs should ideally go to stdout/stderr, not only to files inside the container.
+
+2. kubectl logs reads container logs, not Kubernetes events.
+
+3. kubectl describe is often more useful than kubectl logs for:
+- FailedScheduling
+- ErrImagePull
+- ImagePullBackOff
+- FailedMount
+- probe failures
+
+4. For CrashLoopBackOff, always think:
+kubectl logs <pod-name> --previous
+
+5. For multi-container pods, always check the correct container:
+kubectl logs <pod-name> -c <container-name>
+
+6. Init containers also have separate logs.
+
+7. Pod logs are actually container logs accessed through the pod reference.
+
+8. Logs are not stored in etcd.
+
+9. Node-level logging means logs live on individual nodes.
+Cluster-level logging means logs are collected centrally.
+
+10. DaemonSet is commonly used for log agents because one collector is needed on every node.
+
+11. If a pod is deleted and no central logging exists, logs may be lost.
+
+12. Sidecar logging is useful for legacy apps that write to files, but stdout/stderr is still the best default model.
+
+13. Static pod control-plane components can often be inspected with:
+kubectl logs -n kube-system <pod-name>
+
+14. kubelet logs are typically checked on the node with:
+journalctl -u kubelet
+
+15. Golden troubleshooting pattern:
+get -> describe -> logs -> logs --previous
+
+16. If normal logs are empty but pod is restarting, try --previous before assuming there are no logs.
+
+17. If container never started because image pull failed, logs may not help much. Describe will help more.
+
+18. In real clusters, centralized logging is mandatory for proper observability and retention.
+
+19. Remember the difference:
+- application logs = kubectl logs
+- Kubernetes events = kubectl describe
+
+20. CKA usually tests practical troubleshooting more than deep theory on logging backends.

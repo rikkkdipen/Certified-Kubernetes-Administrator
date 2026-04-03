@@ -1,0 +1,151 @@
+KUBERNETES LOGGING - DETAILED NOTES
+
+1. FUNDAMENTAL IDEA
+- In Kubernetes, applications should write logs to stdout and stderr.
+- This is the preferred container-native logging model.
+- Kubernetes does not expect applications to manage complex local log files inside containers.
+
+2. WHY STDOUT/STDERR IS PREFERRED
+- Containers are ephemeral and replaceable.
+- If logs are written only to internal files, they may be hard to access or may disappear when the container is recreated.
+- stdout/stderr logging allows the platform to capture logs uniformly.
+
+3. LOG FLOW IN KUBERNETES
+- Application writes output to stdout/stderr.
+- Container runtime captures the output.
+- Logs are stored on the node filesystem.
+- Kubelet knows where container logs are.
+- kubectl logs retrieves the logs.
+
+4. COMMON NODE-LEVEL LOG LOCATIONS
+- /var/log/pods/
+- /var/log/containers/
+- Exact structure can depend on runtime and node OS.
+- Logs are stored on the node, not in etcd.
+
+5. kubectl logs
+- Basic usage:
+  kubectl logs <pod-name>
+- Used to read application logs from a container.
+
+6. MULTI-CONTAINER POD LOGGING
+- Logs belong to containers, not to the pod as a single combined stream.
+- For multiple containers:
+  kubectl logs <pod-name> -c <container-name>
+
+7. FOLLOWING LOGS LIVE
+- Use:
+  kubectl logs -f <pod-name>
+- Streams logs in real time.
+
+8. PREVIOUS CONTAINER LOGS
+- Use:
+  kubectl logs <pod-name> --previous
+- Very useful for restarted or crashing containers.
+- For multi-container pods:
+  kubectl logs <pod-name> -c <container-name> --previous
+
+9. kubectl logs VS kubectl describe
+- kubectl logs:
+  Shows application output from inside the container.
+- kubectl describe:
+  Shows object details and events such as:
+  - FailedScheduling
+  - FailedMount
+  - Image pull errors
+  - Probe failures
+
+10. WHEN TO USE WHICH
+- App starts but behaves incorrectly:
+  use kubectl logs
+- Pod has scheduling or image pull issue:
+  use kubectl describe
+- Pod crashes repeatedly:
+  use both describe and logs --previous
+
+11. CRASHLOOPBACKOFF TROUBLESHOOTING
+- Common commands:
+  kubectl describe pod <pod-name>
+  kubectl logs <pod-name> --previous
+- The previous logs often reveal the real startup failure.
+
+12. INIT CONTAINER LOGGING
+- Init containers have separate logs.
+- Use:
+  kubectl logs <pod-name> -c <init-container-name>
+
+13. NODE-LEVEL LOGGING
+- Logs are stored locally on each node.
+- This is the default low-level reality of Kubernetes logging.
+
+14. CLUSTER-LEVEL LOGGING
+- Logs from all nodes are aggregated into a central backend.
+- Needed for:
+  - retention
+  - searchability
+  - correlation
+  - large-scale operations
+
+15. KUBERNETES DOES NOT AUTOMATICALLY PROVIDE FULL CENTRALIZED LOGGING
+- Kubernetes captures container output and exposes it.
+- For production centralized logging, extra tooling is usually installed.
+
+16. COMMON CLUSTER-LEVEL LOGGING TOOLS
+- Fluentd
+- Fluent Bit
+- Elasticsearch
+- Loki
+- Kibana
+- Grafana
+- cloud logging systems
+
+17. WHY LOGGING AGENTS RUN AS DAEMONSETS
+- One log collector is needed per node.
+- DaemonSet ensures one pod runs on every node.
+- This makes it ideal for node-local log collection.
+
+18. SIDECAR LOGGING PATTERN
+- Main container writes logs to file in a shared volume.
+- Sidecar reads and forwards those logs.
+- Useful for legacy apps that do not write to stdout/stderr.
+
+19. BEST PRACTICE
+- Prefer direct stdout/stderr logging whenever possible.
+- Use sidecars only when needed.
+
+20. EVENTS VS LOGS
+- Events:
+  Kubernetes-generated lifecycle/infrastructure messages.
+- Logs:
+  Application-generated runtime output.
+
+21. CONTROL PLANE LOGGING
+- In kubeadm-based clusters, control plane components may run as static pods in kube-system.
+- Their logs can often be viewed with:
+  kubectl logs -n kube-system <component-pod-name>
+
+22. KUBELET LOGS
+- kubelet is a system service on the node.
+- Often inspected with:
+  journalctl -u kubelet
+
+23. LOG ROTATION
+- Container logs can grow large.
+- Runtime or kubelet settings typically rotate logs.
+- Old logs are not guaranteed to remain forever.
+
+24. IMPORTANT EXAM COMMANDS
+- kubectl logs <pod-name>
+- kubectl logs -f <pod-name>
+- kubectl logs <pod-name> -c <container-name>
+- kubectl logs <pod-name> --previous
+- kubectl logs <pod-name> -c <container-name> --previous
+- kubectl describe pod <pod-name>
+
+25. EXAM MINDSET
+- First check pod status.
+- Then describe the pod.
+- Then inspect logs.
+- If container restarted, use --previous.
+- If it is a multi-container pod, always specify -c.
+- For system components, inspect kube-system pod logs or kubelet logs on the node.
