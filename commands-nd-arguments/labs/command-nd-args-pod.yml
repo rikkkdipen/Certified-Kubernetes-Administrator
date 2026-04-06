@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: cmdandargs-pod
+  name: cmd-and-args-pod
   namespace: cna
 spec:
   containers:

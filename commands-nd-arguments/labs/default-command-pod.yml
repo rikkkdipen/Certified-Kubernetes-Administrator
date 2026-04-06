@@ -1,10 +1,9 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: argsonly-pod
+  name: default-command-pod
   namespace: cna
 spec:
   containers:
-    - name: override-args-container
+    - name: commandndargument-container1
       image: nginx:1.25-alpine
-      args: ["echo", "hello from args"]
